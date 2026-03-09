@@ -15,6 +15,16 @@ public class GameSetupEditor : EditorWindow
         // Step 0: Register required tags and layers in TagManager before anything uses them
         EnsureLayersAndTags();
 
+        // Delete stale scenes so they are fully regenerated with current code
+        foreach (string stale in new[] { "Assets/Scenes/DuckRevolution.unity", "Assets/Scenes/MainMenu.unity" })
+        {
+            if (System.IO.File.Exists(stale))
+            {
+                AssetDatabase.DeleteAsset(stale);
+                Debug.Log($"Deleted stale scene: {stale}");
+            }
+        }
+
         // Step 1: Generate improved sprites
         GenerateSprites();
 
@@ -1917,33 +1927,51 @@ public class GameSetupEditor : EditorWindow
 
     private static void RegisterScenesInBuildSettings()
     {
-        string menuPath  = "Assets/Scenes/MainMenu.unity";
-        string gamePath  = "Assets/Scenes/DuckRevolution.unity";
+        string menuPath = "Assets/Scenes/MainMenu.unity";
+        string gamePath = "Assets/Scenes/DuckRevolution.unity";
 
-        var existing = new System.Collections.Generic.List<EditorBuildSettingsScene>(
-            EditorBuildSettings.scenes);
-
-        bool hasMenu = false, hasGame = false;
-        foreach (var s in existing)
+        // Build fresh list: our two scenes first, then preserve any others
+        var scenes = new System.Collections.Generic.List<EditorBuildSettingsScene>
         {
-            if (s.path == menuPath) hasMenu = true;
-            if (s.path == gamePath) hasGame = true;
-        }
+            new EditorBuildSettingsScene(menuPath, true),
+            new EditorBuildSettingsScene(gamePath, true)
+        };
+        foreach (var s in EditorBuildSettings.scenes)
+            if (s.path != menuPath && s.path != gamePath)
+                scenes.Add(s);
 
-        // Refresh so newly-saved .unity files are visible to File.Exists
+        EditorBuildSettings.scenes = scenes.ToArray();
+
+        // EditorBuildSettings.scenes setter doesn't always flush to disk in Unity 6.
+        // Write directly to the ProjectSettings YAML as a reliable fallback.
+        WriteEditorBuildSettingsAsset(menuPath, gamePath);
+
+        Debug.Log($"Build settings updated: {menuPath} (index 0), {gamePath} (index 1).");
+    }
+
+    private static void WriteEditorBuildSettingsAsset(params string[] scenePaths)
+    {
+        var sb = new System.Text.StringBuilder();
+        sb.AppendLine("%YAML 1.1");
+        sb.AppendLine("%TAG !u! tag:unity3d.com,2011:");
+        sb.AppendLine("--- !u!1045 &1");
+        sb.AppendLine("EditorBuildSettings:");
+        sb.AppendLine("  m_ObjectHideFlags: 0");
+        sb.AppendLine("  serializedVersion: 2");
+        sb.AppendLine("  m_Scenes:");
+        foreach (string path in scenePaths)
+        {
+            // Unity stores a GUID per scene path in this file
+            string guid = AssetDatabase.AssetPathToGUID(path);
+            if (string.IsNullOrEmpty(guid)) guid = "00000000000000000000000000000000";
+            sb.AppendLine("  - enabled: 1");
+            sb.AppendLine($"    path: {path}");
+            sb.AppendLine($"    guid: {guid}");
+        }
+        sb.AppendLine("  m_configObjects: {}");
+        sb.AppendLine("  m_UseUCBPForAssetBundles: 0");
+
+        System.IO.File.WriteAllText("ProjectSettings/EditorBuildSettings.asset", sb.ToString());
         AssetDatabase.Refresh();
-
-        if (!hasMenu && System.IO.File.Exists(menuPath))
-            existing.Insert(0, new EditorBuildSettingsScene(menuPath, true));
-        if (!hasGame && System.IO.File.Exists(gamePath))
-        {
-            // Make sure game scene is index 1
-            bool alreadyPresent = false;
-            foreach (var s in existing) if (s.path == gamePath) alreadyPresent = true;
-            if (!alreadyPresent) existing.Add(new EditorBuildSettingsScene(gamePath, true));
-        }
-
-        EditorBuildSettings.scenes = existing.ToArray();
-        Debug.Log("Build settings updated with MainMenu + DuckRevolution scenes.");
     }
 }
