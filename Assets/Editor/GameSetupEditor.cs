@@ -892,7 +892,7 @@ public class GameSetupEditor : EditorWindow
         uiText.fontSize = fontSize;
         uiText.color = color;
         uiText.alignment = ConvertAnchorToTMP(anchor);
-        uiText.enableWordWrapping = false;
+        uiText.textWrappingMode = TextWrappingModes.NoWrap;
 
         // Add outline for readability
         uiText.outlineWidth = 0.2f;
