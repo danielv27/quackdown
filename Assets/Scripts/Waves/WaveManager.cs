@@ -159,7 +159,7 @@ public class WaveManager : MonoBehaviour
         string line = currentWave <= waveLines.Length ? waveLines[lineIdx] : "THEY JUST KEEP COMING!";
 
         string modTag = activeModifier != WaveModifier.None
-            ? $"\n<color=#FF4444>⚠ {activeModifier.ToString().ToUpper()}!</color>"
+            ? $"\n<color=#FF4444>[!!] {activeModifier.ToString().ToUpper()}!</color>"
             : "";
 
         return $"WAVE {currentWave} — {line}{modTag}";

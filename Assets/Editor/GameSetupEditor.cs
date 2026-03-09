@@ -1052,29 +1052,11 @@ public class GameSetupEditor : EditorWindow
 
         RectTransform rect = obj.AddComponent<RectTransform>();
 
-        // Set anchors based on position
-        if (position.x <= 0 && position.y >= 0)
-        {
-            // Top-left
-            rect.anchorMin = new Vector2(0, 1);
-            rect.anchorMax = new Vector2(0, 1);
-            rect.pivot = new Vector2(0, 1);
-        }
-        else if (position.x > 0 && position.y >= 0)
-        {
-            // Top-right
-            rect.anchorMin = new Vector2(1, 1);
-            rect.anchorMax = new Vector2(1, 1);
-            rect.pivot = new Vector2(1, 1);
-        }
-        else if (Mathf.Approximately(position.x, 0) && Mathf.Approximately(position.y, 0))
-        {
-            // Center
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-        }
-
+        // Derive anchor and pivot directly from the TextAnchor enum
+        Vector2 anchorVec = GetAnchorFromTextAnchor(anchor);
+        rect.anchorMin = anchorVec;
+        rect.anchorMax = anchorVec;
+        rect.pivot = anchorVec;
         rect.anchoredPosition = position;
         rect.sizeDelta = size;
 
@@ -1090,6 +1072,23 @@ public class GameSetupEditor : EditorWindow
         uiText.outlineColor = Color.black;
 
         return obj;
+    }
+
+    private static Vector2 GetAnchorFromTextAnchor(TextAnchor anchor)
+    {
+        switch (anchor)
+        {
+            case TextAnchor.UpperLeft:    return new Vector2(0,    1);
+            case TextAnchor.UpperCenter:  return new Vector2(0.5f, 1);
+            case TextAnchor.UpperRight:   return new Vector2(1,    1);
+            case TextAnchor.MiddleLeft:   return new Vector2(0,    0.5f);
+            case TextAnchor.MiddleCenter: return new Vector2(0.5f, 0.5f);
+            case TextAnchor.MiddleRight:  return new Vector2(1,    0.5f);
+            case TextAnchor.LowerLeft:    return new Vector2(0,    0);
+            case TextAnchor.LowerCenter:  return new Vector2(0.5f, 0);
+            case TextAnchor.LowerRight:   return new Vector2(1,    0);
+            default:                      return new Vector2(0.5f, 0.5f);
+        }
     }
 
     private static Sprite CreateCrosshairSprite()
