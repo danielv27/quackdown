@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEngine.UI;
 using UnityEngine.SceneManagement;
+using UnityEngine.InputSystem;
 using TMPro;
 
 /// <summary>
@@ -53,14 +54,14 @@ public class StartMenuManager : MonoBehaviour
         if (controlsText != null)
             controlsText.text =
                 "<b>Controls</b>\n" +
-                "A / D  ·  Arrow Keys  — Move\n" +
-                "Space  ·  W  — Jump\n" +
-                "Left Click  — Shoot\n" +
-                "Right Click  — Egg Grenade\n" +
-                "Q  — Quack (Stun Enemies)\n" +
-                "Shift  — Wing Dash\n" +
-                "S  — Ground Pound (airborne)\n" +
-                "R  — Restart  (game over)";
+                "A / D | Arrow Keys  :  Move\n" +
+                "Space | W  :  Jump\n" +
+                "Left Click  :  Shoot\n" +
+                "Right Click  :  Egg Grenade\n" +
+                "Q  :  Quack (Stun Enemies)\n" +
+                "Shift  :  Wing Dash\n" +
+                "S  :  Ground Pound (airborne)\n" +
+                "R  :  Restart (game over)";
 
         if (playButton != null)
             playButton.onClick.AddListener(PlayGame);
@@ -77,7 +78,8 @@ public class StartMenuManager : MonoBehaviour
         }
 
         // Space / Enter also starts the game
-        if (Input.GetKeyDown(KeyCode.Space) || Input.GetKeyDown(KeyCode.Return))
+        if (Keyboard.current != null &&
+            (Keyboard.current.spaceKey.wasPressedThisFrame || Keyboard.current.enterKey.wasPressedThisFrame))
             PlayGame();
     }
 
@@ -91,7 +93,7 @@ public class StartMenuManager : MonoBehaviour
         int hs = PlayerPrefs.GetInt("HighScore", 0);
         if (highScoreText != null)
             highScoreText.text = hs > 0
-                ? $"<color=#FFD700>★ Best Score: {hs}</color>"
-                : "<color=#888888>No record yet — be the first!</color>";
+                ? $"<color=#FFD700>* Best Score: {hs}</color>"
+                : "<color=#888888>No record yet - be the first!</color>";
     }
 }

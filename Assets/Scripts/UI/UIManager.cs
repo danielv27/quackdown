@@ -149,13 +149,13 @@ public class UIManager : MonoBehaviour
         int kills = ComboSystem.Instance != null ? ComboSystem.Instance.GetTotalKills() : 0;
         bool newRecord = finalScore >= highScore && finalScore > 0;
 
-        string newRecordLine = newRecord ? "\n<color=#FFD700><b>★ NEW HIGH SCORE! ★</b></color>" : $"\nBest: {highScore}";
+        string newRecordLine = newRecord ? "\n<color=#FFD700><b>* NEW HIGH SCORE! *</b></color>" : $"\nBest: {highScore}";
         string body =
             $"<size=120%><b>FINAL SCORE: {finalScore}</b></size>{newRecordLine}\n\n" +
             $"Wave Reached: {wave}\n" +
             $"Enemies Defeated: {kills}\n\n" +
             "<color=#AAAAAA>The revolution will return...\n\n" +
-            "Press <b>R</b> to play again  ·  <b>ESC</b> for main menu</color>";
+            "Press <b>R</b> to play again  |  <b>ESC</b> for main menu</color>";
 
         if (gameOverScoreText != null)
             gameOverScoreText.text = body;

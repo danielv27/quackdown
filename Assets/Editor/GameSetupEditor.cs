@@ -610,7 +610,7 @@ public class GameSetupEditor : EditorWindow
         }
     }
 
-    // ── STAR (8×8) — used in main menu background ─────────────────────────────
+    // ── STAR (8×8) - used in main menu background ─────────────────────────────
     private static void DrawStar(Texture2D t)
     {
         Color w = Color.white;
@@ -1068,7 +1068,7 @@ public class GameSetupEditor : EditorWindow
         gmSO.FindProperty("playerSpawnPoint").objectReferenceValue = playerSpawn.transform;
         gmSO.ApplyModifiedProperties();
 
-        // === DECORATIVE PROPS — Richer arena layout ===
+        // === DECORATIVE PROPS - Richer arena layout ===
         PlaceProps(cratePrefab, barrelPrefab);
 
         // === PARALLAX BACKGROUND ===
@@ -1104,7 +1104,7 @@ public class GameSetupEditor : EditorWindow
 
         ground.transform.position = new Vector3(0f, -1f, 0f);
 
-        // Arena platforms — varied heights for interesting combat
+        // Arena platforms - varied heights for interesting combat
         CreatePlatform("Platform_Left_Low",   new Vector3(-10f, 1.5f, 0f), new Vector2(5f, 0.5f), groundSprite);
         CreatePlatform("Platform_Left_High",  new Vector3(-7f,  3.5f, 0f), new Vector2(3f, 0.5f), groundSprite);
         CreatePlatform("Platform_Center",     new Vector3(0f,   4.5f, 0f), new Vector2(4f, 0.5f), groundSprite);
@@ -1348,8 +1348,8 @@ public class GameSetupEditor : EditorWindow
         // ── BOTTOM-LEFT: Quick-ref controls hint ──────────────────────────────
         CreateUIText("ControlsHint", canvasObj.transform,
             new Vector2(14, 12), new Vector2(480, 72),
-            "WASD/Arrows: Move  ·  Space: Jump  ·  Click: Shoot\n" +
-            "Right Click: Grenade  ·  Q: Quack  ·  Shift: Dash  ·  R: Restart",
+            "WASD/Arrows: Move  |  Space: Jump  |  Click: Shoot\n" +
+            "Right Click: Grenade  |  Q: Quack  |  Shift: Dash  |  R: Restart",
             TextAnchor.LowerLeft, 14, new Color(0.78f, 0.78f, 0.78f, 0.55f));
 
         // ── GAME OVER PANEL ────────────────────────────────────────────────────
@@ -1406,7 +1406,7 @@ public class GameSetupEditor : EditorWindow
         goTextRect.anchorMax = new Vector2(1, 0.78f);
         goTextRect.offsetMin = new Vector2(20, 12); goTextRect.offsetMax = new Vector2(-20, -12);
         var goTMP = gameOverText.AddComponent<TextMeshProUGUI>();
-        goTMP.text = "FINAL SCORE: 0\n\nWave Reached: 1\nEnemies Defeated: 0\n\nPress R to play again  ·  ESC for main menu";
+        goTMP.text = "FINAL SCORE: 0\n\nWave Reached: 1\nEnemies Defeated: 0\n\nPress R to play again  |  ESC for main menu";
         goTMP.fontSize = 28;
         goTMP.color = new Color(0.90f, 0.90f, 0.88f);
         goTMP.alignment = TextAlignmentOptions.Center;
@@ -1589,7 +1589,7 @@ public class GameSetupEditor : EditorWindow
         GameObject bgContainer = new GameObject("Background_Parallax");
         ParallaxBackground parallax = bgContainer.AddComponent<ParallaxBackground>();
 
-        // Layer 0: Gradient sky (deep blue at top → warm blue at horizon)
+        // Layer 0: Gradient sky (deep blue at top -> warm blue at horizon)
         GameObject sky = CreateBgLayer("BG_Sky", new Color(0.38f, 0.60f, 0.92f), -12, 0f, -2f);
         sky.transform.SetParent(bgContainer.transform);
         sky.transform.localScale = new Vector3(120f, 60f, 1f);
@@ -1646,7 +1646,7 @@ public class GameSetupEditor : EditorWindow
     // ── START MENU SCENE ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Builds Assets/Scenes/MainMenu.unity — a stylish start-menu scene.
+    /// Builds Assets/Scenes/MainMenu.unity - a stylish start-menu scene.
     /// </summary>
     private static void BuildStartMenuScene()
     {
@@ -1732,14 +1732,14 @@ public class GameSetupEditor : EditorWindow
         hsRect.anchorMax = new Vector2(0.75f, 0.60f);
         hsRect.offsetMin = hsRect.offsetMax = Vector2.zero;
         var hsTMP = hsObj.AddComponent<TextMeshProUGUI>();
-        hsTMP.text = "<color=#FFD700>★ Best Score: 0</color>";
+        hsTMP.text = "<color=#FFD700>* Best Score: 0</color>";
         hsTMP.fontSize = 26;
         hsTMP.alignment = TextAlignmentOptions.Center;
 
         // ── PLAY button ──
         GameObject playBtn = CreateMenuButton("PlayButton", canvasObj.transform,
             new Vector2(0.35f, 0.36f), new Vector2(0.65f, 0.50f),
-            "▶  PLAY",
+            "PLAY",
             new Color(0.18f, 0.62f, 0.18f), new Color(0.24f, 0.82f, 0.24f),
             new Color(1f, 1f, 1f), 42);
 
@@ -1763,14 +1763,14 @@ public class GameSetupEditor : EditorWindow
         var ctrlTMP = ctrlTextObj.AddComponent<TextMeshProUGUI>();
         ctrlTMP.text =
             "<size=80%><color=#BBBBDD><b>Controls</b></color>\n</size>" +
-            "<size=70%>A / D  ·  ← →  — Move\n" +
-            "Space  ·  W  — Jump\n" +
-            "Left Click  — Shoot\n" +
-            "Right Click  — Egg Grenade\n" +
-            "Q  — Quack (Stun)\n" +
-            "Shift  — Wing Dash\n" +
-            "S (air)  — Ground Pound\n" +
-            "R  — Restart  ·  ESC  — Menu</size>";
+            "<size=70%>A / D  |  <- ->  - Move\n" +
+            "Space  |  W  - Jump\n" +
+            "Left Click  - Shoot\n" +
+            "Right Click  - Egg Grenade\n" +
+            "Q  - Quack (Stun)\n" +
+            "Shift  - Wing Dash\n" +
+            "S (air)  - Ground Pound\n" +
+            "R  - Restart  |  ESC  - Menu</size>";
         ctrlTMP.fontSize = 22;
         ctrlTMP.color = new Color(0.88f, 0.88f, 0.88f);
         ctrlTMP.textWrappingMode = TextWrappingModes.Normal;
@@ -1783,7 +1783,7 @@ public class GameSetupEditor : EditorWindow
         verRect.anchorMax = new Vector2(1f, 0.08f);
         verRect.offsetMin = verRect.offsetMax = Vector2.zero;
         var verTMP = verObj.AddComponent<TextMeshProUGUI>();
-        verTMP.text = "v1.0  ·  Duck Revolution";
+        verTMP.text = "v1.0  |  Duck Revolution";
         verTMP.fontSize = 16;
         verTMP.color = new Color(0.55f, 0.55f, 0.55f, 0.7f);
         verTMP.alignment = TextAlignmentOptions.BottomRight;
