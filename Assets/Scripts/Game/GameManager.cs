@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Manages the overall game state: start, wave progression, score, game over.
@@ -17,16 +18,34 @@ public class GameManager : MonoBehaviour
     [SerializeField] private Transform playerSpawnPoint;
 
     private GameObject currentPlayer;
+    private InputAction restartAction;
 
     private void Awake()
     {
-        // Singleton setup
         if (Instance != null && Instance != this)
         {
             Destroy(gameObject);
             return;
         }
         Instance = this;
+
+        restartAction = new InputAction("Restart", InputActionType.Button);
+        restartAction.AddBinding("<Keyboard>/r");
+    }
+
+    private void OnEnable()
+    {
+        restartAction.Enable();
+    }
+
+    private void OnDisable()
+    {
+        restartAction.Disable();
+    }
+
+    private void OnDestroy()
+    {
+        restartAction.Dispose();
     }
 
     private void Start()
@@ -36,11 +55,8 @@ public class GameManager : MonoBehaviour
 
     private void Update()
     {
-        // Press R to restart when game is over
-        if (!gameActive && Input.GetKeyDown(KeyCode.R))
-        {
+        if (!gameActive && restartAction.WasPressedThisFrame())
             RestartGame();
-        }
     }
 
     /// <summary>
@@ -51,21 +67,18 @@ public class GameManager : MonoBehaviour
         score = 0;
         gameActive = true;
 
-        // Spawn player if prefab is assigned and no player exists
         if (playerPrefab != null && currentPlayer == null)
         {
             Vector3 spawnPos = playerSpawnPoint != null ? playerSpawnPoint.position : Vector3.zero;
             currentPlayer = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
         }
 
-        // Update UI
         if (UIManager.Instance != null)
         {
             UIManager.Instance.UpdateScore(score);
             UIManager.Instance.ShowTextPopup("THE DUCK REVOLUTION HAS BEGUN!", Vector3.up * 2f);
         }
 
-        // Start wave spawning
         if (WaveManager.Instance != null)
             WaveManager.Instance.StartWaves();
 
@@ -99,11 +112,8 @@ public class GameManager : MonoBehaviour
         Debug.Log("GAME OVER - The revolution has been quelled... for now.");
 
         if (UIManager.Instance != null)
-        {
             UIManager.Instance.ShowGameOver(score);
-        }
 
-        // Stop wave spawning
         if (WaveManager.Instance != null)
             WaveManager.Instance.StopWaves();
     }
@@ -113,7 +123,6 @@ public class GameManager : MonoBehaviour
     /// </summary>
     public void RestartGame()
     {
-        // Reload the current scene
         UnityEngine.SceneManagement.SceneManager.LoadScene(
             UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
         );
@@ -127,3 +136,4 @@ public class GameManager : MonoBehaviour
         return gameActive;
     }
 }
+

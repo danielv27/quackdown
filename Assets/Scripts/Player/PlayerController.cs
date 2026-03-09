@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Handles all player input and movement for the Battle Duck.
@@ -31,57 +32,101 @@ public class PlayerController : MonoBehaviour
     private bool facingRight = true;
     private float quackTimer;
 
+    private InputAction moveAction;
+    private InputAction jumpAction;
+    private InputAction shootAction;
+    private InputAction grenadeAction;
+    private InputAction quackAction;
+
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
 
-        // Auto-find weapon system if not assigned
         if (weaponSystem == null)
             weaponSystem = GetComponent<WeaponSystem>();
+
+        SetupInputActions();
+    }
+
+    private void SetupInputActions()
+    {
+        moveAction = new InputAction("Move", InputActionType.Value);
+        moveAction.AddCompositeBinding("1DAxis")
+            .With("Negative", "<Keyboard>/a")
+            .With("Positive", "<Keyboard>/d");
+        moveAction.AddCompositeBinding("1DAxis")
+            .With("Negative", "<Keyboard>/leftArrow")
+            .With("Positive", "<Keyboard>/rightArrow");
+
+        jumpAction = new InputAction("Jump", InputActionType.Button);
+        jumpAction.AddBinding("<Keyboard>/space");
+        jumpAction.AddBinding("<Keyboard>/w");
+        jumpAction.AddBinding("<Keyboard>/upArrow");
+
+        shootAction = new InputAction("Shoot", InputActionType.Button);
+        shootAction.AddBinding("<Mouse>/leftButton");
+        shootAction.AddBinding("<Keyboard>/leftCtrl");
+
+        grenadeAction = new InputAction("Grenade", InputActionType.Button);
+        grenadeAction.AddBinding("<Mouse>/rightButton");
+        grenadeAction.AddBinding("<Keyboard>/leftAlt");
+
+        quackAction = new InputAction("Quack", InputActionType.Button);
+        quackAction.AddBinding("<Keyboard>/q");
+    }
+
+    private void OnEnable()
+    {
+        moveAction.Enable();
+        jumpAction.Enable();
+        shootAction.Enable();
+        grenadeAction.Enable();
+        quackAction.Enable();
+    }
+
+    private void OnDisable()
+    {
+        moveAction.Disable();
+        jumpAction.Disable();
+        shootAction.Disable();
+        grenadeAction.Disable();
+        quackAction.Disable();
+    }
+
+    private void OnDestroy()
+    {
+        moveAction.Dispose();
+        jumpAction.Dispose();
+        shootAction.Dispose();
+        grenadeAction.Dispose();
+        quackAction.Dispose();
     }
 
     private void Update()
     {
-        // Read horizontal input (A/D or Left/Right arrows)
-        horizontalInput = Input.GetAxisRaw("Horizontal");
+        horizontalInput = moveAction.ReadValue<float>();
 
-        // Flip sprite based on movement direction
         if (horizontalInput > 0 && !facingRight)
             Flip();
         else if (horizontalInput < 0 && facingRight)
             Flip();
 
-        // Ground check using overlap circle
         isGrounded = false;
         if (groundCheck != null)
-        {
             isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
-        }
 
-        // Jump
-        if (Input.GetButtonDown("Jump") && isGrounded)
-        {
+        if (jumpAction.WasPressedThisFrame() && isGrounded)
             rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
-        }
 
-        // Shoot (left mouse button or left ctrl)
-        if (Input.GetButtonDown("Fire1"))
-        {
-            if (weaponSystem != null)
-                weaponSystem.Shoot(GetAimDirection());
-        }
+        if (shootAction.WasPressedThisFrame() && weaponSystem != null)
+            weaponSystem.Shoot(GetAimDirection());
 
-        // Throw egg grenade (right mouse button or left alt)
-        if (Input.GetButtonDown("Fire2"))
-        {
-            if (weaponSystem != null)
-                weaponSystem.ThrowGrenade(GetAimDirection());
-        }
+        if (grenadeAction.WasPressedThisFrame() && weaponSystem != null)
+            weaponSystem.ThrowGrenade(GetAimDirection());
 
-        // Quack ability (Q key) - stuns nearby enemies
         quackTimer -= Time.deltaTime;
-        if (Input.GetKeyDown(KeyCode.Q) && quackTimer <= 0f)
+        if (quackAction.WasPressedThisFrame() && quackTimer <= 0f)
         {
             Quack();
             quackTimer = quackCooldown;
@@ -90,7 +135,6 @@ public class PlayerController : MonoBehaviour
 
     private void FixedUpdate()
     {
-        // Apply horizontal movement
         rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
     }
 
@@ -102,7 +146,6 @@ public class PlayerController : MonoBehaviour
         facingRight = !facingRight;
         spriteRenderer.flipX = !facingRight;
 
-        // Also flip the fire point
         if (firePoint != null)
         {
             Vector3 pos = firePoint.localPosition;
@@ -120,10 +163,13 @@ public class PlayerController : MonoBehaviour
         if (mainCam == null)
             return facingRight ? Vector2.right : Vector2.left;
 
-        // Use mouse position for aiming
-        Vector3 mouseWorldPos = mainCam.ScreenToWorldPoint(Input.mousePosition);
-        Vector2 direction = (mouseWorldPos - transform.position).normalized;
-        return direction;
+        Mouse mouse = Mouse.current;
+        if (mouse == null)
+            return facingRight ? Vector2.right : Vector2.left;
+
+        Vector3 mouseWorldPos = mainCam.ScreenToWorldPoint(
+            new Vector3(mouse.position.x.ReadValue(), mouse.position.y.ReadValue(), 0f));
+        return (mouseWorldPos - transform.position).normalized;
     }
 
     /// <summary>
@@ -133,19 +179,15 @@ public class PlayerController : MonoBehaviour
     {
         Debug.Log("QUAAACK! *stun*");
 
-        // Show quack popup
         if (UIManager.Instance != null)
             UIManager.Instance.ShowTextPopup("QUAAACK!", transform.position + Vector3.up);
 
-        // Find all enemies in radius and stun them
         Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, quackStunRadius);
         foreach (Collider2D hit in hits)
         {
             EnemyBase enemy = hit.GetComponent<EnemyBase>();
             if (enemy != null)
-            {
                 enemy.Stun(quackStunDuration);
-            }
         }
     }
 
@@ -160,8 +202,8 @@ public class PlayerController : MonoBehaviour
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
 
-        // Draw quack radius
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, quackStunRadius);
     }
 }
+
