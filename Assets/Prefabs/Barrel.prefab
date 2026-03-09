@@ -181,6 +181,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::DestructibleProp
   maxHealth: 40
   scoreValue: 25
-  debrisCount: 4
-  debrisForce: 300
+  isExplosive: 1
+  debrisCount: 5
+  debrisForce: 350
   debrisColor: {r: 0.6, g: 0.2, b: 0.15, a: 1}
+  chainExplosionRadius: 3
+  chainExplosionDamage: 40

@@ -253,8 +253,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   flashOnDamage: 1
-  damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
-  flashDuration: 0.1
+  damageFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashDuration: 0.08
 --- !u!114 &3348305716098166742
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -275,6 +275,10 @@ MonoBehaviour:
     m_Bits: 256
   firePoint: {fileID: 4066652266436816292}
   projectilePrefab: {fileID: 8384112206089465896, guid: 292498175b3cd406c9dcfabc8f857e2e, type: 3}
+  possibleDrops: []
+  dropChance: 0.15
+  weaponDrop: {fileID: 0}
+  weaponDropChance: 0.08
   grenadePrefab: {fileID: 2373400738693863304, guid: c0397255eaad648768307bfe426f7c7c, type: 3}
   grenadeChance: 0.3
   grenadeThrowForce: 8

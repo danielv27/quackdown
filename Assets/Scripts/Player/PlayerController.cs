@@ -64,6 +64,10 @@ public class PlayerController : MonoBehaviour
     private Vector3 baseScale;
     private float speedMultiplier = 1f;
 
+    // Wall-cling state
+    private bool isWallClinging;
+    private int wallClingDir; // -1 = left wall, +1 = right wall
+
     // Input actions
     private InputAction moveAction;
     private InputAction jumpAction;
@@ -166,6 +170,9 @@ public class PlayerController : MonoBehaviour
         if (isGrounded && !wasGrounded)
             OnLand();
 
+        // Wall-cling detection — airborne + pressing into a wall surface
+        UpdateWallCling();
+
         // Coyote time counter
         if (isGrounded)
             coyoteCounter = coyoteTime;
@@ -219,8 +226,9 @@ public class PlayerController : MonoBehaviour
         if (dashAction.WasPressedThisFrame() && dashTimer <= 0f)
             StartCoroutine(DoDash());
 
-        // Squash/stretch recover
-        transform.localScale = Vector3.Lerp(transform.localScale, baseScale, squashRecoverSpeed * Time.deltaTime);
+        // Squash/stretch recover — skip when wall-clinging so the squash pose holds
+        if (!isWallClinging)
+            transform.localScale = Vector3.Lerp(transform.localScale, baseScale, squashRecoverSpeed * Time.deltaTime);
     }
 
     private void FixedUpdate()
@@ -233,6 +241,7 @@ public class PlayerController : MonoBehaviour
     {
         rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         AudioManager.PlaySFX("jump");
+        if (isWallClinging) EndWallCling();
 
         // Stretch upward on jump
         transform.localScale = new Vector3(baseScale.x * (1f - squashAmount * 0.5f), baseScale.y * (1f + squashAmount), baseScale.z);
@@ -434,6 +443,77 @@ public class PlayerController : MonoBehaviour
         speedMultiplier = multiplier;
         yield return new WaitForSeconds(duration);
         speedMultiplier = 1f;
+    }
+
+    // ── Wall-cling ──────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Detects when the duck is airborne and pressing against a vertical wall surface.
+    /// Applies a squash-and-tilt visual so the mechanic looks intentional rather than buggy.
+    /// </summary>
+    private void UpdateWallCling()
+    {
+        if (isGrounded || isDashing)
+        {
+            if (isWallClinging) EndWallCling();
+            return;
+        }
+
+        bool pressingRight = horizontalInput > 0.1f;
+        bool pressingLeft  = horizontalInput < -0.1f;
+
+        bool wallR = pressingRight && CheckWallInDirection(1f);
+        bool wallL = pressingLeft  && CheckWallInDirection(-1f);
+        bool nowClinging = wallR || wallL;
+
+        if (nowClinging && !isWallClinging)
+        {
+            isWallClinging = true;
+            wallClingDir   = wallR ? 1 : -1;
+
+            // Squash the duck flat against the wall — wider & slightly shorter
+            transform.localScale = new Vector3(
+                baseScale.x * 0.65f,
+                baseScale.y * 1.1f,
+                baseScale.z
+            );
+
+            // Tilt slightly toward the wall
+            float tilt = wallClingDir * -8f; // degrees
+            transform.rotation = Quaternion.Euler(0f, 0f, tilt);
+
+            ParticleManager.SpawnLandingDust(transform.position + Vector3.up * 0.3f);
+        }
+        else if (!nowClinging && isWallClinging)
+        {
+            EndWallCling();
+        }
+    }
+
+    private void EndWallCling()
+    {
+        isWallClinging = false;
+        transform.rotation = Quaternion.identity;
+        // Scale will be recovered by the squash/stretch recover in Update
+    }
+
+    /// <summary>Returns true if there is a ground-layer surface directly beside the player.</summary>
+    private bool CheckWallInDirection(float dir)
+    {
+        // Use a thin BoxCast slightly narrower than the player collider
+        const float castDist  = 0.22f;
+        const float castWidth = 0.08f;
+        const float castHeight = 0.55f;
+
+        RaycastHit2D hit = Physics2D.BoxCast(
+            (Vector2)transform.position,
+            new Vector2(castWidth, castHeight),
+            0f,
+            new Vector2(dir, 0f),
+            castDist,
+            groundLayer
+        );
+        return hit.collider != null;
     }
 
     private void OnDrawGizmosSelected()

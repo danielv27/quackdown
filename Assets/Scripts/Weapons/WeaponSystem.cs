@@ -2,6 +2,7 @@ using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Pool;
+using UnityEngine.InputSystem;
 
 /// <summary>
 /// Handles the player's weapon systems: multi-weapon support, feather shots, and egg grenades.
@@ -83,12 +84,20 @@ public class WeaponSystem : MonoBehaviour
         // Cycle weapons with scroll wheel or 1/2/3 keys
         if (weaponInventory.Count > 1)
         {
-            float scroll = Input.GetAxis("Mouse ScrollWheel");
-            if (scroll > 0f) CycleWeapon(1);
-            else if (scroll < 0f) CycleWeapon(-1);
+            if (Mouse.current != null)
+            {
+                float scroll = Mouse.current.scroll.ReadValue().y;
+                if (scroll > 0f) CycleWeapon(1);
+                else if (scroll < 0f) CycleWeapon(-1);
+            }
 
-            for (int i = 0; i < Mathf.Min(weaponInventory.Count, 9); i++)
-                if (Input.GetKeyDown(KeyCode.Alpha1 + i)) currentWeaponIndex = i;
+            if (Keyboard.current != null)
+            {
+                Key[] digitKeys = { Key.Digit1, Key.Digit2, Key.Digit3, Key.Digit4,
+                                    Key.Digit5, Key.Digit6, Key.Digit7, Key.Digit8, Key.Digit9 };
+                for (int i = 0; i < Mathf.Min(weaponInventory.Count, digitKeys.Length); i++)
+                    if (Keyboard.current[digitKeys[i]].wasPressedThisFrame) currentWeaponIndex = i;
+            }
         }
     }
 

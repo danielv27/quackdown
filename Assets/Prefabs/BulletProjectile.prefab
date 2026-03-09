@@ -181,3 +181,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::Projectile
   speed: 15
   lifetime: 3
+  addTrail: 1
+  trailTime: 0.08
+  trailStartColor: {r: 1, g: 1, b: 0.8, a: 0.8}
+  trailEndColor: {r: 1, g: 0.8, b: 0, a: 0}

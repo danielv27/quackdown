@@ -20,9 +20,11 @@ public class GameManager : MonoBehaviour
     private static readonly string HighScoreKey = "HighScore";
     private static readonly string HighScoreWaveKey = "HighScoreWave";
     private static readonly string TotalKillsKey = "TotalKills";
+    private const string MainMenuScene = "MainMenu";
 
     private GameObject currentPlayer;
     private InputAction restartAction;
+    private InputAction mainMenuAction;
     private int highScore;
 
     private void Awake()
@@ -39,11 +41,14 @@ public class GameManager : MonoBehaviour
         restartAction = new InputAction("Restart", InputActionType.Button);
         restartAction.AddBinding("<Keyboard>/r");
         restartAction.AddBinding("<Gamepad>/start");
+
+        mainMenuAction = new InputAction("MainMenu", InputActionType.Button);
+        mainMenuAction.AddBinding("<Keyboard>/escape");
     }
 
-    private void OnEnable() => restartAction.Enable();
-    private void OnDisable() => restartAction.Disable();
-    private void OnDestroy() => restartAction.Dispose();
+    private void OnEnable() { restartAction.Enable(); mainMenuAction.Enable(); }
+    private void OnDisable() { restartAction.Disable(); mainMenuAction.Disable(); }
+    private void OnDestroy() { restartAction.Dispose(); mainMenuAction.Dispose(); }
 
     private void Start()
     {
@@ -59,6 +64,8 @@ public class GameManager : MonoBehaviour
     {
         if (!gameActive && restartAction.WasPressedThisFrame())
             RestartGame();
+        if (!gameActive && mainMenuAction.WasPressedThisFrame())
+            GoToMainMenu();
     }
 
     public void StartGame()
@@ -121,6 +128,24 @@ public class GameManager : MonoBehaviour
         UnityEngine.SceneManagement.SceneManager.LoadScene(
             UnityEngine.SceneManagement.SceneManager.GetActiveScene().buildIndex
         );
+    }
+
+    public void GoToMainMenu()
+    {
+        Time.timeScale = 1f;
+        // Try to load by name first; fall back to build index 0
+        int idx = -1;
+        for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings; i++)
+        {
+            string path = UnityEngine.SceneManagement.SceneUtility.GetScenePathByBuildIndex(i);
+            string sceneName = System.IO.Path.GetFileNameWithoutExtension(path);
+            if (string.Equals(sceneName, MainMenuScene, System.StringComparison.OrdinalIgnoreCase))
+            { idx = i; break; }
+        }
+        if (idx >= 0)
+            UnityEngine.SceneManagement.SceneManager.LoadScene(idx);
+        else
+            UnityEngine.SceneManagement.SceneManager.LoadScene(0);
     }
 
     public bool IsGameActive() => gameActive;

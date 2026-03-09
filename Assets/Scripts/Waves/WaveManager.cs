@@ -153,7 +153,7 @@ public class WaveManager : MonoBehaviour
         };
 
         if (isRestWave)
-            return $"WAVE {currentWave} — BREATHER WAVE\nFewer enemies, more drops!";
+            return $"WAVE {currentWave} - BREATHER WAVE\nFewer enemies, more drops!";
 
         int lineIdx = Mathf.Clamp(currentWave - 1, 0, waveLines.Length - 1);
         string line = currentWave <= waveLines.Length ? waveLines[lineIdx] : "THEY JUST KEEP COMING!";
@@ -162,7 +162,7 @@ public class WaveManager : MonoBehaviour
             ? $"\n<color=#FF4444>[!!] {activeModifier.ToString().ToUpper()}!</color>"
             : "";
 
-        return $"WAVE {currentWave} — {line}{modTag}";
+        return $"WAVE {currentWave} - {line}{modTag}";
     }
 
     private void SpawnEnemy()
