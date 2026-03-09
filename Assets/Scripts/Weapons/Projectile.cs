@@ -30,7 +30,9 @@ public class Projectile : MonoBehaviour
         transform.rotation = Quaternion.AngleAxis(angle, Vector3.forward);
 
         // Set layer to Projectile
-        gameObject.layer = LayerMask.NameToLayer("Projectile");
+        int projLayer = LayerMask.NameToLayer("Projectile");
+        if (projLayer >= 0) gameObject.layer = projLayer;
+        else Debug.LogWarning("Layer 'Projectile' not found. Run DuckRevolution > Setup Game.");
 
         // Self-destruct after lifetime
         Destroy(gameObject, lifetime);

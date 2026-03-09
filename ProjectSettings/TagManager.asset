@@ -8,15 +8,16 @@ TagManager:
   - Grenade
   - Destructible
   - SpawnPoint
+  - Enemy
   layers:
   - Default
   - TransparentFX
   - Ignore Raycast
-  -
+  - ''
   - Water
   - UI
-  -
-  -
+  - ''
+  - ''
   - Ground
   - Player
   - Enemy

@@ -12,6 +12,9 @@ public class GameSetupEditor : EditorWindow
     [MenuItem("DuckRevolution/Setup Game (Full Auto Setup)")]
     public static void SetupGame()
     {
+        // Step 0: Register required tags and layers in TagManager before anything uses them
+        EnsureLayersAndTags();
+
         // Step 1: Generate placeholder sprites
         GenerateSprites();
 
@@ -34,6 +37,68 @@ public class GameSetupEditor : EditorWindow
             "- Right Click: Throw Egg Grenade\n" +
             "- Q: Quack (Stun)\n" +
             "- R: Restart (when game over)", "QUACK!");
+    }
+
+    /// <summary>
+    /// Ensures all required tags and layers exist in TagManager before the setup runs.
+    /// Uses SerializedObject so changes take effect immediately without a domain reload.
+    /// </summary>
+    private static void EnsureLayersAndTags()
+    {
+        SerializedObject tagManager = new SerializedObject(
+            AssetDatabase.LoadAllAssetsAtPath("ProjectSettings/TagManager.asset")[0]);
+
+        string[] requiredTags = { "Enemy" }; // "Player" is a built-in Unity tag
+        foreach (string tag in requiredTags)
+            AddTagIfMissing(tagManager, tag);
+
+        string[] requiredLayers = { "Ground", "Player", "Enemy", "Projectile", "Destructible" };
+        foreach (string layer in requiredLayers)
+            AddLayerIfMissing(tagManager, layer);
+
+        tagManager.ApplyModifiedProperties();
+        AssetDatabase.SaveAssets();
+        AssetDatabase.Refresh();
+        Debug.Log("Tags and layers verified.");
+    }
+
+    private static void AddTagIfMissing(SerializedObject tagManager, string tag)
+    {
+        SerializedProperty tagsProp = tagManager.FindProperty("tags");
+        for (int i = 0; i < tagsProp.arraySize; i++)
+        {
+            if (tagsProp.GetArrayElementAtIndex(i).stringValue == tag) return;
+        }
+        tagsProp.InsertArrayElementAtIndex(tagsProp.arraySize);
+        tagsProp.GetArrayElementAtIndex(tagsProp.arraySize - 1).stringValue = tag;
+    }
+
+    private static void AddLayerIfMissing(SerializedObject tagManager, string layerName)
+    {
+        SerializedProperty layersProp = tagManager.FindProperty("layers");
+        for (int i = 0; i < layersProp.arraySize; i++)
+        {
+            if (layersProp.GetArrayElementAtIndex(i).stringValue == layerName) return;
+        }
+        // User layers start at index 8; find first empty slot
+        for (int i = 8; i < layersProp.arraySize; i++)
+        {
+            if (string.IsNullOrEmpty(layersProp.GetArrayElementAtIndex(i).stringValue))
+            {
+                layersProp.GetArrayElementAtIndex(i).stringValue = layerName;
+                return;
+            }
+        }
+        // If array doesn't reach slot 31 yet, expand it
+        if (layersProp.arraySize < 32)
+        {
+            layersProp.InsertArrayElementAtIndex(layersProp.arraySize);
+            layersProp.GetArrayElementAtIndex(layersProp.arraySize - 1).stringValue = layerName;
+        }
+        else
+        {
+            Debug.LogWarning($"Could not add layer '{layerName}': all 32 slots are occupied.");
+        }
     }
 
     /// <summary>
@@ -122,6 +187,7 @@ public class GameSetupEditor : EditorWindow
             importer.spritePixelsPerUnit = 32;
             importer.filterMode = FilterMode.Point;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
+            importer.spriteMeshType = SpriteMeshType.FullRect; // Required for SpriteDrawMode.Tiled
             importer.SaveAndReimport();
         }
     }
@@ -645,7 +711,12 @@ public class GameSetupEditor : EditorWindow
         // === BACKGROUND ===
         CreateBackground();
 
-        // Save the scene
+        // Save the scene (ensure directory exists first)
+        if (!System.IO.Directory.Exists("Assets/Scenes"))
+        {
+            System.IO.Directory.CreateDirectory("Assets/Scenes");
+            AssetDatabase.Refresh();
+        }
         UnityEditor.SceneManagement.EditorSceneManager.SaveScene(scene, "Assets/Scenes/DuckRevolution.unity");
 
         Debug.Log("Scene built successfully!");

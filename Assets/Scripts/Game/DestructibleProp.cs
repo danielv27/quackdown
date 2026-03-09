@@ -22,7 +22,9 @@ public class DestructibleProp : MonoBehaviour
     {
         currentHealth = maxHealth;
         spriteRenderer = GetComponent<SpriteRenderer>();
-        gameObject.layer = LayerMask.NameToLayer("Destructible");
+        int layer = LayerMask.NameToLayer("Destructible");
+        if (layer >= 0) gameObject.layer = layer;
+        else Debug.LogWarning("Layer 'Destructible' not found. Run DuckRevolution > Setup Game.");
     }
 
     /// <summary>
