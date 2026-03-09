@@ -1,4 +1,4 @@
-# 🦆 Duck Revolution - A Chaotic 2D Action Game
+# 🦆 Quack Down - A Chaotic 2D Action Game
 
 **A goofy, chaotic 2D action game built in Unity where ducks rise up against humanity!**
 
