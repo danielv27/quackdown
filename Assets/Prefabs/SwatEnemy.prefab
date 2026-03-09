@@ -76,9 +76,9 @@ GameObject:
   - component: {fileID: 5098213832123398592}
   - component: {fileID: 5747990686460956595}
   - component: {fileID: 8877938114066718642}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: SwatEnemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -272,7 +272,7 @@ MonoBehaviour:
   groundCheckRadius: 0.2
   groundLayer:
     serializedVersion: 2
-    m_Bits: 2147483648
+    m_Bits: 256
   firePoint: {fileID: 4865356175488765809}
   projectilePrefab: {fileID: 8384112206089465896, guid: 292498175b3cd406c9dcfabc8f857e2e, type: 3}
   burstCount: 3

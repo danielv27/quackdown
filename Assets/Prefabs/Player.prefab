@@ -46,7 +46,7 @@ GameObject:
   - component: {fileID: 1389462651576505233}
   - component: {fileID: 83960553704894760}
   - component: {fileID: 1425110626511430690}
-  m_Layer: 0
+  m_Layer: 9
   m_Name: Player
   m_TagString: Player
   m_Icon: {fileID: 0}
@@ -220,7 +220,7 @@ MonoBehaviour:
   groundCheckRadius: 0.2
   groundLayer:
     serializedVersion: 2
-    m_Bits: 2147483648
+    m_Bits: 256
   weaponSystem: {fileID: 83960553704894760}
   quackStunRadius: 3
   quackStunDuration: 1.5

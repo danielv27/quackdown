@@ -76,9 +76,9 @@ GameObject:
   - component: {fileID: 4396397043876777617}
   - component: {fileID: 2186459271645771132}
   - component: {fileID: 3348305716098166742}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: ArmyEnemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -272,7 +272,7 @@ MonoBehaviour:
   groundCheckRadius: 0.2
   groundLayer:
     serializedVersion: 2
-    m_Bits: 2147483648
+    m_Bits: 256
   firePoint: {fileID: 4066652266436816292}
   projectilePrefab: {fileID: 8384112206089465896, guid: 292498175b3cd406c9dcfabc8f857e2e, type: 3}
   grenadePrefab: {fileID: 2373400738693863304, guid: c0397255eaad648768307bfe426f7c7c, type: 3}

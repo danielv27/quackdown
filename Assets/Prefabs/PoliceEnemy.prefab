@@ -76,9 +76,9 @@ GameObject:
   - component: {fileID: 8288556358281305395}
   - component: {fileID: 6410540283808318547}
   - component: {fileID: 4001899571865799090}
-  m_Layer: 0
+  m_Layer: 10
   m_Name: PoliceEnemy
-  m_TagString: Untagged
+  m_TagString: Enemy
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
@@ -272,6 +272,6 @@ MonoBehaviour:
   groundCheckRadius: 0.2
   groundLayer:
     serializedVersion: 2
-    m_Bits: 2147483648
+    m_Bits: 256
   firePoint: {fileID: 5765661240246534668}
   projectilePrefab: {fileID: 8384112206089465896, guid: 292498175b3cd406c9dcfabc8f857e2e, type: 3}

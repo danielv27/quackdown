@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 3410750501816077437}
   - component: {fileID: 884049848106914649}
   - component: {fileID: 3218917755445169448}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: FeatherProjectile
   m_TagString: Untagged
   m_Icon: {fileID: 0}

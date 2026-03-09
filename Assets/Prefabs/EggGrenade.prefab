@@ -13,7 +13,7 @@ GameObject:
   - component: {fileID: 8502645166310873845}
   - component: {fileID: 859144811072188210}
   - component: {fileID: 6077335551756046705}
-  m_Layer: 0
+  m_Layer: 11
   m_Name: EggGrenade
   m_TagString: Untagged
   m_Icon: {fileID: 0}
