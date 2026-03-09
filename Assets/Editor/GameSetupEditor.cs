@@ -1930,6 +1930,9 @@ public class GameSetupEditor : EditorWindow
             if (s.path == gamePath) hasGame = true;
         }
 
+        // Refresh so newly-saved .unity files are visible to File.Exists
+        AssetDatabase.Refresh();
+
         if (!hasMenu && System.IO.File.Exists(menuPath))
             existing.Insert(0, new EditorBuildSettingsScene(menuPath, true));
         if (!hasGame && System.IO.File.Exists(gamePath))
