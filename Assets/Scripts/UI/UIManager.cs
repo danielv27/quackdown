@@ -154,7 +154,8 @@ public class UIManager : MonoBehaviour
             $"<size=120%><b>FINAL SCORE: {finalScore}</b></size>{newRecordLine}\n\n" +
             $"Wave Reached: {wave}\n" +
             $"Enemies Defeated: {kills}\n\n" +
-            "<color=#AAAAAA>The revolution will return...\n\nPress <b>R</b> to restart</color>";
+            "<color=#AAAAAA>The revolution will return...\n\n" +
+            "Press <b>R</b> to play again  ·  <b>ESC</b> for main menu</color>";
 
         if (gameOverScoreText != null)
             gameOverScoreText.text = body;
