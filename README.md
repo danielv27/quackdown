@@ -260,7 +260,7 @@ The game uses procedurally generated pixel sprites (see `SpriteGenerator.cs`). T
 
 - **No audio**: Sound effects and music are not implemented. Add an `AudioSource` + `AudioClip` to each prefab and call `Play()` on key events.
 - **No save system**: Score resets on play restart.
-- **Sorting layers**: The project uses a single `Default` sorting layer for simplicity. For layered parallax backgrounds, create additional sorting layers in **Tags and Layers → Sorting Layers**.
+- **Sorting layers**: The project defines sorting layers (`Background`, `Midground`, `Foreground`, `Default`, `UI`) in `ProjectSettings/TagManager.asset`. If sprites appear in the wrong draw order, assign the correct sorting layer name to your sprite renderers (e.g., `"Background"` for the sky backdrop, `"Foreground"` for characters and projectiles). For parallax scrolling backgrounds, create additional `Background` sub-layers.
 - **Enemy pathfinding**: Enemies use simple 1D AI (patrol ↔ chase). They do not navigate around platforms. For platformer-aware AI, implement a 2D raycast ground-check or use Unity's NavMesh with a 2D plugin.
 - **Unity version**: If you open with a newer Unity version, accept any API upgrade prompts. The code uses stable APIs that haven't changed significantly.
 

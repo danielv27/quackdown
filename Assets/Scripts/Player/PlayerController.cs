@@ -33,6 +33,7 @@ public class PlayerController : MonoBehaviour
     [Header("Ground Check")]
     public Transform groundCheck;
     public LayerMask groundLayer;
+    [SerializeField] private float groundCheckRadius = 0.15f;
 
     // ---- Quack ----
     [Header("Quack Ability")]
