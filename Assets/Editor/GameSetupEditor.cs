@@ -1116,3 +1116,4 @@ public class GameSetupEditor : EditorWindow
         layerProp.FindPropertyRelative("parallaxFactor").floatValue = factor;
         layerProp.FindPropertyRelative("loopHorizontally").boolValue = loop;
     }
+}
