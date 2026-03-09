@@ -4,6 +4,12 @@
 EditorBuildSettings:
   m_ObjectHideFlags: 0
   serializedVersion: 2
-  m_Scenes: []
+  m_Scenes:
+  - enabled: 1
+    path: Assets/Scenes/MainMenu.unity
+    guid: 09705fbe596744268b568a8deff2b9fc
+  - enabled: 1
+    path: Assets/Scenes/DuckRevolution.unity
+    guid: 4881575a631aa4930bed8a004be4cef7
   m_configObjects: {}
   m_UseUCBPForAssetBundles: 0

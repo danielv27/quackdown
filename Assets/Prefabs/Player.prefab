@@ -221,6 +221,17 @@ MonoBehaviour:
   groundLayer:
     serializedVersion: 2
     m_Bits: 256
+  coyoteTime: 0.12
+  jumpBufferTime: 0.12
+  squashAmount: 0.3
+  squashRecoverSpeed: 8
+  dashSpeed: 18
+  dashDuration: 0.18
+  dashCooldown: 1.5
+  dashAfterimageCount: 4
+  groundPoundForce: 28
+  groundPoundRadius: 2.5
+  groundPoundDamage: 35
   weaponSystem: {fileID: 83960553704894760}
   quackStunRadius: 3
   quackStunDuration: 1.5
@@ -246,6 +257,9 @@ MonoBehaviour:
   eggGrenadePrefab: {fileID: 2373400738693863304, guid: c0397255eaad648768307bfe426f7c7c, type: 3}
   grenadeThrowForce: 10
   grenadeCooldown: 2
+  startingWeapons: []
+  maxPickupWeapons: 3
+  muzzleFlash: {fileID: 0}
 --- !u!114 &1425110626511430690
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -267,8 +281,8 @@ MonoBehaviour:
     m_PersistentCalls:
       m_Calls: []
   flashOnDamage: 1
-  damageFlashColor: {r: 1, g: 0, b: 0, a: 1}
-  flashDuration: 0.1
+  damageFlashColor: {r: 1, g: 1, b: 1, a: 1}
+  flashDuration: 0.08
 --- !u!1 &8370477116869369251
 GameObject:
   m_ObjectHideFlags: 0
