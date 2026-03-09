@@ -902,10 +902,23 @@ public class GameSetupEditor : EditorWindow
 
         canvasObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
-        // Score Text (top-left)
-        GameObject scoreObj = CreateUIText("ScoreText", canvasObj.transform,
-            new Vector2(20, -20), new Vector2(300, 50),
-            "SCORE: 0", TextAnchor.UpperLeft, 28, Color.white);
+        // Score Text (top-right corner)
+        GameObject scoreObj = new GameObject("ScoreText");
+        scoreObj.transform.SetParent(canvasObj.transform, false);
+        RectTransform scoreRect = scoreObj.AddComponent<RectTransform>();
+        scoreRect.anchorMin = new Vector2(1, 1);
+        scoreRect.anchorMax = new Vector2(1, 1);
+        scoreRect.pivot = new Vector2(1, 1);
+        scoreRect.anchoredPosition = new Vector2(-20, -20);
+        scoreRect.sizeDelta = new Vector2(300, 50);
+        TextMeshProUGUI scoreTMP = scoreObj.AddComponent<TextMeshProUGUI>();
+        scoreTMP.text = "SCORE: 0";
+        scoreTMP.fontSize = 28;
+        scoreTMP.color = Color.white;
+        scoreTMP.alignment = TextAlignmentOptions.TopRight;
+        scoreTMP.textWrappingMode = TextWrappingModes.NoWrap;
+        scoreTMP.outlineWidth = 0.2f;
+        scoreTMP.outlineColor = Color.black;
 
         // Wave Text (top-center)
         GameObject waveObj = CreateUIText("WaveText", canvasObj.transform,
@@ -972,6 +985,20 @@ public class GameSetupEditor : EditorWindow
 
         gameOverPanel.SetActive(false);
 
+        // Software cursor crosshair (always on top, hidden while hardware cursor is off)
+        Sprite crosshairSprite = CreateCrosshairSprite();
+        GameObject cursorObj = new GameObject("CursorCrosshair");
+        cursorObj.transform.SetParent(canvasObj.transform, false);
+        RectTransform cursorRect = cursorObj.AddComponent<RectTransform>();
+        cursorRect.sizeDelta = new Vector2(32, 32);
+        cursorRect.pivot = new Vector2(0.5f, 0.5f);
+        cursorRect.anchorMin = new Vector2(0, 0);
+        cursorRect.anchorMax = new Vector2(0, 0);
+        UnityEngine.UI.Image cursorImg = cursorObj.AddComponent<UnityEngine.UI.Image>();
+        if (crosshairSprite != null) cursorImg.sprite = crosshairSprite;
+        else { cursorImg.color = new Color(1f, 0.9f, 0f, 0.9f); }
+        cursorObj.transform.SetAsLastSibling();
+
         // Create UI Manager and assign references
         UIManager uiManager = canvasObj.AddComponent<UIManager>();
         SerializedObject uiSO = new SerializedObject(uiManager);
@@ -982,6 +1009,7 @@ public class GameSetupEditor : EditorWindow
         uiSO.FindProperty("announcementText").objectReferenceValue = announcementObj.GetComponent<TextMeshProUGUI>();
         uiSO.FindProperty("gameOverPanel").objectReferenceValue = gameOverPanel;
         uiSO.FindProperty("gameOverScoreText").objectReferenceValue = gameOverText.GetComponent<TextMeshProUGUI>();
+        uiSO.FindProperty("cursorImage").objectReferenceValue = cursorRect;
         uiSO.ApplyModifiedProperties();
 
         // World Space Canvas for text popups
@@ -1062,6 +1090,69 @@ public class GameSetupEditor : EditorWindow
         uiText.outlineColor = Color.black;
 
         return obj;
+    }
+
+    private static Sprite CreateCrosshairSprite()
+    {
+        const int size = 32;
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        Color[] pixels = new Color[size * size];
+        for (int i = 0; i < pixels.Length; i++) pixels[i] = Color.clear;
+
+        Color c = new Color(1f, 0.9f, 0f, 0.95f); // bright yellow
+        int cx = size / 2, cy = size / 2;
+
+        // Circle ring (radius 11–13)
+        for (int a = 0; a < 360; a++)
+        {
+            float rad = a * Mathf.Deg2Rad;
+            for (int r = 11; r <= 13; r++)
+            {
+                int px = cx + Mathf.RoundToInt(r * Mathf.Cos(rad));
+                int py = cy + Mathf.RoundToInt(r * Mathf.Sin(rad));
+                if (px >= 0 && px < size && py >= 0 && py < size)
+                    pixels[py * size + px] = c;
+            }
+        }
+
+        // Cross lines with center gap (gap 3–9, total arm length to ring)
+        for (int t = -1; t <= 1; t++)
+        {
+            for (int d = 3; d <= 9; d++)
+            {
+                if (cx + d < size) pixels[(cy + t) * size + (cx + d)] = c;
+                if (cx - d >= 0)   pixels[(cy + t) * size + (cx - d)] = c;
+                if (cy + d < size) pixels[(cy + d) * size + (cx + t)] = c;
+                if (cy - d >= 0)   pixels[(cy - d) * size + (cx + t)] = c;
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        if (!System.IO.Directory.Exists("Assets/Sprites"))
+            System.IO.Directory.CreateDirectory("Assets/Sprites");
+
+        string path = "Assets/Sprites/Crosshair.png";
+        System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+        Object.DestroyImmediate(tex);
+        AssetDatabase.ImportAsset(path);
+
+        TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer != null)
+        {
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spritePixelsPerUnit = 32;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            TextureImporterSettings settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+            importer.SetTextureSettings(settings);
+            importer.SaveAndReimport();
+        }
+
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
     }
 
     private static void CreateBackground()

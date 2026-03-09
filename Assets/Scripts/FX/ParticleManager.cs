@@ -177,6 +177,9 @@ public class ParticleManager : MonoBehaviour
 
         var rotOverLife = ps.rotationOverLifetime;
         rotOverLife.enabled = true;
+        // All three axes must use the same MinMaxCurve mode (TwoConstants)
+        rotOverLife.x = new ParticleSystem.MinMaxCurve(0f, 0f);
+        rotOverLife.y = new ParticleSystem.MinMaxCurve(0f, 0f);
         rotOverLife.z = new ParticleSystem.MinMaxCurve(-3f, 3f);
 
         var renderer = go.GetComponent<ParticleSystemRenderer>();
@@ -253,7 +256,10 @@ public class ParticleManager : MonoBehaviour
         var velOverLife = ps.velocityOverLifetime;
         velOverLife.enabled = true;
         velOverLife.space = ParticleSystemSimulationSpace.World;
+        // All three axes must use the same MinMaxCurve mode (TwoConstants)
+        velOverLife.x = new ParticleSystem.MinMaxCurve(0f, 0f);
         velOverLife.y = new ParticleSystem.MinMaxCurve(1f, 3f);
+        velOverLife.z = new ParticleSystem.MinMaxCurve(0f, 0f);
 
         var renderer = go.GetComponent<ParticleSystemRenderer>();
         renderer.material = new Material(Shader.Find("Sprites/Default"));

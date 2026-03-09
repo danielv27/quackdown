@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using UnityEngine.InputSystem;
 using TMPro;
 
 /// <summary>
@@ -29,6 +30,9 @@ public class UIManager : MonoBehaviour
     [Header("Combo Display")]
     [SerializeField] private TextMeshProUGUI comboText;
 
+    [Header("Cursor")]
+    [SerializeField] private RectTransform cursorImage;
+
     [Header("Score Animation")]
     [SerializeField] private float scoreRollSpeed = 5f;
 
@@ -52,6 +56,7 @@ public class UIManager : MonoBehaviour
             return;
         }
         Instance = this;
+        Cursor.visible = false; // Use software crosshair instead
     }
 
     private void Update()
@@ -66,6 +71,14 @@ public class UIManager : MonoBehaviour
         UpdateHealthDisplay();
         UpdateScoreRollup();
         UpdateComboDisplay();
+        UpdateCursorPosition();
+    }
+
+    private void UpdateCursorPosition()
+    {
+        if (cursorImage == null || Mouse.current == null) return;
+        Vector2 mousePos = Mouse.current.position.ReadValue();
+        cursorImage.position = new Vector3(mousePos.x, mousePos.y, 0f);
     }
 
     public void UpdateScore(int score)
