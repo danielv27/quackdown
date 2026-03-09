@@ -62,7 +62,7 @@ public class PlayerController : MonoBehaviour
         // Jump
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
         }
 
         // Shoot (left mouse button or left ctrl)
@@ -91,7 +91,7 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         // Apply horizontal movement
-        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
+        rb.velocity = new Vector2(horizontalInput * moveSpeed, rb.velocity.y);
     }
 
     /// <summary>
@@ -116,8 +116,12 @@ public class PlayerController : MonoBehaviour
     /// </summary>
     private Vector2 GetAimDirection()
     {
+        Camera mainCam = Camera.main;
+        if (mainCam == null)
+            return facingRight ? Vector2.right : Vector2.left;
+
         // Use mouse position for aiming
-        Vector3 mouseWorldPos = Camera.main.ScreenToWorldPoint(Input.mousePosition);
+        Vector3 mouseWorldPos = mainCam.ScreenToWorldPoint(Input.mousePosition);
         Vector2 direction = (mouseWorldPos - transform.position).normalized;
         return direction;
     }

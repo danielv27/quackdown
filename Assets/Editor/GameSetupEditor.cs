@@ -874,7 +874,13 @@ public class GameSetupEditor : EditorWindow
         uiText.fontSize = fontSize;
         uiText.color = color;
         uiText.alignment = anchor;
-        uiText.font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+
+        // Try to load built-in font (name varies by Unity version)
+        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
+        if (font == null)
+            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
+        uiText.font = font;
+
         uiText.horizontalOverflow = HorizontalWrapMode.Overflow;
 
         // Add outline for readability

@@ -26,6 +26,8 @@ public class UIManager : MonoBehaviour
     [SerializeField] private float announcementDuration = 3f;
 
     private float announcementTimer;
+    private GameObject cachedPlayer;
+    private HealthSystem cachedPlayerHealth;
 
     private void Awake()
     {
@@ -116,17 +118,20 @@ public class UIManager : MonoBehaviour
     /// </summary>
     private void UpdateHealthDisplay()
     {
-        GameObject player = GameObject.FindGameObjectWithTag("Player");
-        if (player == null) return;
-
-        HealthSystem health = player.GetComponent<HealthSystem>();
-        if (health == null) return;
+        // Cache player reference to avoid FindGameObjectWithTag every frame
+        if (cachedPlayer == null)
+        {
+            cachedPlayer = GameObject.FindGameObjectWithTag("Player");
+            if (cachedPlayer != null)
+                cachedPlayerHealth = cachedPlayer.GetComponent<HealthSystem>();
+        }
+        if (cachedPlayer == null || cachedPlayerHealth == null) return;
 
         if (healthBar != null)
-            healthBar.fillAmount = health.GetHealthPercent();
+            healthBar.fillAmount = cachedPlayerHealth.GetHealthPercent();
 
         if (healthText != null)
-            healthText.text = "HP: " + Mathf.Ceil(health.GetCurrentHealth());
+            healthText.text = "HP: " + Mathf.Ceil(cachedPlayerHealth.GetCurrentHealth());
     }
 
     /// <summary>
