@@ -1,0 +1,26 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 738c2a3609be543a3a70928ba1b5082f, type: 3}
+  m_Name: SwatData
+  m_EditorClassIdentifier: Assembly-CSharp::EnemyData
+  enemyName: SWAT Operator
+  sprite: {fileID: 0}
+  spriteColor: {r: 0.3, g: 0.3, b: 0.35, a: 1}
+  maxHealth: 100
+  moveSpeed: 4
+  damage: 12
+  attackRange: 8
+  attackCooldown: 0.8
+  detectionRange: 15
+  patrolSpeed: 2
+  scoreValue: 200
+  spawnAnnouncement: SWAT DEPLOYED!
