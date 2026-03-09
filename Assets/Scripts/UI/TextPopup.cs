@@ -25,6 +25,9 @@ public class TextPopup : MonoBehaviour
 
         // Create TextMeshPro for world-space text
         tmpText = gameObject.AddComponent<TextMeshPro>();
+        // Font must be assigned explicitly — no implicit default in Unity 6
+        var defaultFont = TMP_Settings.defaultFontAsset;
+        if (defaultFont != null) tmpText.font = defaultFont;
         tmpText.text = text;
         tmpText.fontSize = fontSize;
         tmpText.alignment = TextAlignmentOptions.Center;

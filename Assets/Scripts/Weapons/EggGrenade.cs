@@ -2,7 +2,7 @@ using UnityEngine;
 
 /// <summary>
 /// Egg grenade behavior - bounces around, then explodes dealing area damage.
-/// THE EGGS OF REVOLUTION!
+/// Supports radius multipliers from powerups. Chain-explodes destructible props.
 /// </summary>
 public class EggGrenade : MonoBehaviour
 {
@@ -16,21 +16,19 @@ public class EggGrenade : MonoBehaviour
     [SerializeField] private Color explosionColor = new Color(1f, 0.8f, 0f);
 
     private float timer;
-    private bool isFriendly = true; // Player's grenade by default
+    private bool isFriendly = true;
     private bool hasExploded;
+    private float radiusMultiplier = 1f;
+    private SpriteRenderer sr;
 
-    /// <summary>
-    /// Set whether this grenade was thrown by the player or an enemy.
-    /// </summary>
-    public void SetFriendly(bool friendly)
-    {
-        isFriendly = friendly;
-    }
+    public void SetFriendly(bool friendly) => isFriendly = friendly;
+    public void SetRadiusMultiplier(float mult) => radiusMultiplier = mult;
 
     private void Start()
     {
         timer = fuseTime;
         gameObject.layer = LayerMask.NameToLayer("Projectile");
+        sr = GetComponent<SpriteRenderer>();
     }
 
     private void Update()
@@ -38,101 +36,86 @@ public class EggGrenade : MonoBehaviour
         timer -= Time.deltaTime;
 
         // Flash faster as it's about to explode
-        SpriteRenderer sr = GetComponent<SpriteRenderer>();
         if (sr != null)
         {
-            float flash = Mathf.PingPong(Time.time * (3f - timer) * 3f, 1f);
+            float flashSpeed = 3f + (1f - Mathf.Clamp01(timer / fuseTime)) * 15f;
+            float flash = Mathf.PingPong(Time.time * flashSpeed, 1f);
             sr.color = Color.Lerp(Color.white, Color.red, flash);
         }
 
         if (timer <= 0f && !hasExploded)
-        {
             Explode();
-        }
     }
 
-    /// <summary>
-    /// BOOM! Explode and deal damage to everything in radius.
-    /// </summary>
     private void Explode()
     {
         hasExploded = true;
 
-        Debug.Log("BOOM! *egg explosion*");
-
-        // Find everything in explosion radius
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, explosionRadius);
+        float radius = explosionRadius * radiusMultiplier;
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, radius);
 
         foreach (Collider2D hit in hits)
         {
-            // Don't damage the thrower's team
             if (isFriendly && hit.CompareTag("Player")) continue;
             if (!isFriendly && hit.CompareTag("Enemy")) continue;
 
-            // Deal damage
+            float dist = Vector2.Distance(transform.position, hit.transform.position);
+            float falloff = 1f - Mathf.Clamp01(dist / radius);
+
             HealthSystem health = hit.GetComponent<HealthSystem>();
             if (health != null)
             {
-                // Damage falls off with distance
-                float dist = Vector2.Distance(transform.position, hit.transform.position);
-                float damageMultiplier = 1f - (dist / explosionRadius);
-                health.TakeDamage(explosionDamage * damageMultiplier);
+                health.TakeDamage(explosionDamage * falloff);
+                // Knockback
+                Vector2 dir = ((Vector2)hit.transform.position - (Vector2)transform.position).normalized;
+                health.Knockback(dir, explosionForce * 0.01f * falloff);
             }
 
-            // Apply explosion force
-            Rigidbody2D rb = hit.GetComponent<Rigidbody2D>();
-            if (rb != null)
+            Rigidbody2D hitRb = hit.GetComponent<Rigidbody2D>();
+            if (hitRb != null)
             {
                 Vector2 forceDir = (hit.transform.position - transform.position).normalized;
-                rb.AddForce(forceDir * explosionForce);
+                hitRb.AddForce(forceDir * explosionForce * falloff);
             }
 
-            // Destroy destructible props
             DestructibleProp prop = hit.GetComponent<DestructibleProp>();
-            if (prop != null)
-            {
-                prop.TakeDamage(explosionDamage);
-            }
+            prop?.TakeDamage(explosionDamage);
         }
 
         // Show explosion popup
         if (UIManager.Instance != null)
         {
-            string[] explosionTexts = { "BOOM!", "KABOOM!", "EGG-SPLOSION!", "*CRACK*" };
-            UIManager.Instance.ShowTextPopup(
-                explosionTexts[Random.Range(0, explosionTexts.Length)],
-                transform.position + Vector3.up
-            );
+            string[] texts = { "BOOM!", "KABOOM!", "EGG-SPLOSION!", "*CRACK*", "SCRAMBLED!" };
+            UIManager.Instance.ShowTextPopup(texts[Random.Range(0, texts.Length)], transform.position + Vector3.up);
         }
 
-        // Create simple explosion visual effect
-        CreateExplosionEffect();
+        // Big shake and kill stop
+        CameraFollow.ShakeCamera(0.35f * radiusMultiplier);
+        JuiceManager.Instance?.KillStop();
+        AudioManager.PlaySFX("explosion");
+
+        // Create explosion visual
+        CreateExplosionEffect(radius);
 
         Destroy(gameObject);
     }
 
-    /// <summary>
-    /// Creates a simple expanding circle as an explosion effect.
-    /// </summary>
-    private void CreateExplosionEffect()
+    private void CreateExplosionEffect(float radius)
     {
-        // Create a simple explosion circle
         GameObject effect = new GameObject("ExplosionEffect");
         effect.transform.position = transform.position;
 
-        SpriteRenderer sr = effect.AddComponent<SpriteRenderer>();
-        sr.color = explosionColor;
-        sr.sortingLayerName = "Projectiles";
+        SpriteRenderer effectSr = effect.AddComponent<SpriteRenderer>();
+        effectSr.color = explosionColor;
+        effectSr.sortingOrder = 10;
 
-        // Use a simple circle - will be replaced with actual sprite
-        // For now, scale up and fade out
         ExplosionEffect fx = effect.AddComponent<ExplosionEffect>();
-        fx.Initialize(explosionRadius, explosionColor);
+        fx.Initialize(radius, explosionColor);
     }
 
     private void OnDrawGizmosSelected()
     {
         Gizmos.color = Color.red;
-        Gizmos.DrawWireSphere(transform.position, explosionRadius);
+        Gizmos.DrawWireSphere(transform.position, explosionRadius * radiusMultiplier);
     }
 }

@@ -2,8 +2,8 @@ using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
-/// Manages the overall game state: start, wave progression, score, game over.
-/// Singleton pattern for easy access from other scripts.
+/// Manages overall game state: start, wave progression, score, game over, and high scores.
+/// Bootstraps the JuiceManager and AudioManager singletons.
 /// </summary>
 public class GameManager : MonoBehaviour
 {
@@ -17,8 +17,13 @@ public class GameManager : MonoBehaviour
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private Transform playerSpawnPoint;
 
+    private static readonly string HighScoreKey = "HighScore";
+    private static readonly string HighScoreWaveKey = "HighScoreWave";
+    private static readonly string TotalKillsKey = "TotalKills";
+
     private GameObject currentPlayer;
     private InputAction restartAction;
+    private int highScore;
 
     private void Awake()
     {
@@ -29,27 +34,24 @@ public class GameManager : MonoBehaviour
         }
         Instance = this;
 
+        highScore = PlayerPrefs.GetInt(HighScoreKey, 0);
+
         restartAction = new InputAction("Restart", InputActionType.Button);
         restartAction.AddBinding("<Keyboard>/r");
+        restartAction.AddBinding("<Gamepad>/start");
     }
 
-    private void OnEnable()
-    {
-        restartAction.Enable();
-    }
-
-    private void OnDisable()
-    {
-        restartAction.Disable();
-    }
-
-    private void OnDestroy()
-    {
-        restartAction.Dispose();
-    }
+    private void OnEnable() => restartAction.Enable();
+    private void OnDisable() => restartAction.Disable();
+    private void OnDestroy() => restartAction.Dispose();
 
     private void Start()
     {
+        // Bootstrap singletons that aren't in the scene
+        JuiceManager.GetOrCreate();
+        AudioManager.GetOrCreate();
+        ParticleManager.GetOrCreate();
+
         StartGame();
     }
 
@@ -59,9 +61,6 @@ public class GameManager : MonoBehaviour
             RestartGame();
     }
 
-    /// <summary>
-    /// Start a new game.
-    /// </summary>
     public void StartGame()
     {
         score = 0;
@@ -73,54 +72,50 @@ public class GameManager : MonoBehaviour
             currentPlayer = Instantiate(playerPrefab, spawnPos, Quaternion.identity);
         }
 
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.UpdateScore(score);
-            UIManager.Instance.ShowTextPopup("THE DUCK REVOLUTION HAS BEGUN!", Vector3.up * 2f);
-        }
+        UIManager.Instance?.UpdateScore(score);
+        UIManager.Instance?.ShowTextPopup("THE DUCK REVOLUTION HAS BEGUN!", Vector3.up * 2f);
 
-        if (WaveManager.Instance != null)
-            WaveManager.Instance.StartWaves();
-
-        Debug.Log("=== DUCK REVOLUTION BEGINS ===");
+        WaveManager.Instance?.StartWaves();
     }
 
-    /// <summary>
-    /// Add score points.
-    /// </summary>
     public void AddScore(int points)
     {
-        score += points;
-        if (UIManager.Instance != null)
-            UIManager.Instance.UpdateScore(score);
+        // Apply combo multiplier
+        int comboMult = ComboSystem.Instance != null ? ComboSystem.Instance.GetComboMultiplier() : 1;
+        score += points * comboMult;
+        UIManager.Instance?.UpdateScore(score);
     }
 
-    /// <summary>
-    /// Get the current score.
-    /// </summary>
-    public int GetScore()
+    public int GetScore() => score;
+    public int GetHighScore() => highScore;
+
+    public void RegisterKill()
     {
-        return score;
+        int kills = PlayerPrefs.GetInt(TotalKillsKey, 0) + 1;
+        PlayerPrefs.SetInt(TotalKillsKey, kills);
     }
 
-    /// <summary>
-    /// Called when the player dies. Game over!
-    /// </summary>
     public void GameOver()
     {
         gameActive = false;
-        Debug.Log("GAME OVER - The revolution has been quelled... for now.");
 
-        if (UIManager.Instance != null)
-            UIManager.Instance.ShowGameOver(score);
+        bool newHighScore = score > highScore;
+        if (newHighScore)
+        {
+            highScore = score;
+            PlayerPrefs.SetInt(HighScoreKey, highScore);
+            if (WaveManager.Instance != null)
+                PlayerPrefs.SetInt(HighScoreWaveKey, WaveManager.Instance.GetCurrentWave());
+            PlayerPrefs.Save();
+        }
 
-        if (WaveManager.Instance != null)
-            WaveManager.Instance.StopWaves();
+        UIManager.Instance?.ShowGameOver(score);
+        WaveManager.Instance?.StopWaves();
+
+        if (newHighScore)
+            UIManager.Instance?.ShowTextPopup("NEW HIGH SCORE!", Vector3.up * 3f);
     }
 
-    /// <summary>
-    /// Restart the game.
-    /// </summary>
     public void RestartGame()
     {
         UnityEngine.SceneManagement.SceneManager.LoadScene(
@@ -128,12 +123,6 @@ public class GameManager : MonoBehaviour
         );
     }
 
-    /// <summary>
-    /// Check if the game is currently active.
-    /// </summary>
-    public bool IsGameActive()
-    {
-        return gameActive;
-    }
+    public bool IsGameActive() => gameActive;
 }
 

@@ -437,13 +437,33 @@ public class GameSetupEditor : EditorWindow
         Object.DestroyImmediate(armyPrefabObj);
 
         // === DESTRUCTIBLE PREFABS ===
-        GameObject cratePrefab = CreateDestructiblePrefab("Crate", crateSprite, 30f, new Color(0.6f, 0.4f, 0.2f));
+        GameObject cratePrefab = CreateDestructiblePrefab("Crate", crateSprite, 30f, new Color(0.6f, 0.4f, 0.2f), false);
         PrefabUtility.SaveAsPrefabAsset(cratePrefab, prefabPath + "/Crate.prefab");
         Object.DestroyImmediate(cratePrefab);
 
-        GameObject barrelPrefab = CreateDestructiblePrefab("Barrel", barrelSprite, 40f, new Color(0.6f, 0.2f, 0.15f));
+        GameObject barrelPrefab = CreateDestructiblePrefab("Barrel", barrelSprite, 40f, new Color(0.6f, 0.2f, 0.15f), true);
         PrefabUtility.SaveAsPrefabAsset(barrelPrefab, prefabPath + "/Barrel.prefab");
         Object.DestroyImmediate(barrelPrefab);
+
+        // === NEW ENEMY PREFABS ===
+        GameObject riotPrefabObj = CreateEnemyPrefab("RiotShieldEnemy", policeSprite, policeData, bulletPrefabAsset, typeof(RiotShieldEnemy));
+        PrefabUtility.SaveAsPrefabAsset(riotPrefabObj, prefabPath + "/RiotShieldEnemy.prefab");
+        Object.DestroyImmediate(riotPrefabObj);
+
+        GameObject sniperPrefabObj = CreateEnemyPrefab("SniperEnemy", armySprite, armyData, bulletPrefabAsset, typeof(SniperEnemy));
+        PrefabUtility.SaveAsPrefabAsset(sniperPrefabObj, prefabPath + "/SniperEnemy.prefab");
+        Object.DestroyImmediate(sniperPrefabObj);
+
+        GameObject k9PrefabObj = CreateEnemyPrefab("K9Enemy", policeSprite, policeData, null, typeof(K9Enemy));
+        PrefabUtility.SaveAsPrefabAsset(k9PrefabObj, prefabPath + "/K9Enemy.prefab");
+        Object.DestroyImmediate(k9PrefabObj);
+
+        GameObject dronePrefabObj = CreateEnemyPrefab("DroneEnemy", armySprite, armyData, eggPrefabAsset, typeof(DroneEnemy));
+        SerializedObject droneSO2 = new SerializedObject(dronePrefabObj.GetComponent<DroneEnemy>());
+        SerializedProperty bombProp = droneSO2.FindProperty("bombPrefab");
+        if (bombProp != null) { bombProp.objectReferenceValue = eggPrefabAsset; droneSO2.ApplyModifiedProperties(); }
+        PrefabUtility.SaveAsPrefabAsset(dronePrefabObj, prefabPath + "/DroneEnemy.prefab");
+        Object.DestroyImmediate(dronePrefabObj);
 
         AssetDatabase.SaveAssets();
         AssetDatabase.Refresh();
@@ -612,7 +632,7 @@ public class GameSetupEditor : EditorWindow
         return enemy;
     }
 
-    private static GameObject CreateDestructiblePrefab(string name, Sprite sprite, float health, Color debrisColor)
+    private static GameObject CreateDestructiblePrefab(string name, Sprite sprite, float health, Color debrisColor, bool isExplosive = false)
     {
         GameObject obj = new GameObject(name);
         obj.layer = LayerMask.NameToLayer("Destructible");
@@ -624,12 +644,14 @@ public class GameSetupEditor : EditorWindow
         Rigidbody2D rb = obj.AddComponent<Rigidbody2D>();
         rb.bodyType = RigidbodyType2D.Static;
 
-        BoxCollider2D col = obj.AddComponent<BoxCollider2D>();
+        obj.AddComponent<BoxCollider2D>();
 
         DestructibleProp dp = obj.AddComponent<DestructibleProp>();
         SerializedObject so = new SerializedObject(dp);
         so.FindProperty("maxHealth").floatValue = health;
         so.FindProperty("debrisColor").colorValue = debrisColor;
+        SerializedProperty explosiveProp = so.FindProperty("isExplosive");
+        if (explosiveProp != null) explosiveProp.boolValue = isExplosive;
         so.ApplyModifiedProperties();
 
         return obj;
@@ -648,6 +670,10 @@ public class GameSetupEditor : EditorWindow
         GameObject policePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/PoliceEnemy.prefab");
         GameObject swatPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/SwatEnemy.prefab");
         GameObject armyPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/ArmyEnemy.prefab");
+        GameObject riotPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/RiotShieldEnemy.prefab");
+        GameObject sniperPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/SniperEnemy.prefab");
+        GameObject k9Prefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/K9Enemy.prefab");
+        GameObject dronePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/DroneEnemy.prefab");
         Sprite groundSprite = AssetDatabase.LoadAssetAtPath<Sprite>("Assets/Sprites/Ground.png");
         GameObject cratePrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Crate.prefab");
         GameObject barrelPrefab = AssetDatabase.LoadAssetAtPath<GameObject>("Assets/Prefabs/Barrel.prefab");
@@ -659,6 +685,18 @@ public class GameSetupEditor : EditorWindow
         gmSO.FindProperty("playerPrefab").objectReferenceValue = playerPrefab;
         gmSO.ApplyModifiedProperties();
 
+        // === PARTICLE MANAGER ===
+        GameObject particleObj = new GameObject("ParticleManager");
+        particleObj.AddComponent<ParticleManager>();
+
+        // === JUICE MANAGER ===
+        GameObject juiceObj = new GameObject("JuiceManager");
+        juiceObj.AddComponent<JuiceManager>();
+
+        // === AUDIO MANAGER ===
+        GameObject audioObj = new GameObject("AudioManager");
+        audioObj.AddComponent<AudioManager>();
+
         // === WAVE MANAGER ===
         GameObject waveManagerObj = new GameObject("WaveManager");
         WaveManager wm = waveManagerObj.AddComponent<WaveManager>();
@@ -666,6 +704,10 @@ public class GameSetupEditor : EditorWindow
         wmSO.FindProperty("policePrefab").objectReferenceValue = policePrefab;
         wmSO.FindProperty("swatPrefab").objectReferenceValue = swatPrefab;
         wmSO.FindProperty("armyPrefab").objectReferenceValue = armyPrefab;
+        wmSO.FindProperty("riotShieldPrefab").objectReferenceValue = riotPrefab;
+        wmSO.FindProperty("sniperPrefab").objectReferenceValue = sniperPrefab;
+        wmSO.FindProperty("k9Prefab").objectReferenceValue = k9Prefab;
+        wmSO.FindProperty("dronePrefab").objectReferenceValue = dronePrefab;
         wmSO.ApplyModifiedProperties();
 
         // === CAMERA SETUP ===
@@ -695,24 +737,10 @@ public class GameSetupEditor : EditorWindow
         gmSO.FindProperty("playerSpawnPoint").objectReferenceValue = playerSpawn.transform;
         gmSO.ApplyModifiedProperties();
 
-        // === DECORATIVE PROPS ===
-        if (cratePrefab != null)
-        {
-            GameObject crate1 = (GameObject)PrefabUtility.InstantiatePrefab(cratePrefab);
-            crate1.transform.position = new Vector3(5f, 0.5f, 0f);
-            GameObject crate2 = (GameObject)PrefabUtility.InstantiatePrefab(cratePrefab);
-            crate2.transform.position = new Vector3(-6f, 0.5f, 0f);
-        }
+        // === DECORATIVE PROPS — Richer arena layout ===
+        PlaceProps(cratePrefab, barrelPrefab);
 
-        if (barrelPrefab != null)
-        {
-            GameObject barrel1 = (GameObject)PrefabUtility.InstantiatePrefab(barrelPrefab);
-            barrel1.transform.position = new Vector3(8f, 0.5f, 0f);
-            GameObject barrel2 = (GameObject)PrefabUtility.InstantiatePrefab(barrelPrefab);
-            barrel2.transform.position = new Vector3(-3f, 0.5f, 0f);
-        }
-
-        // === BACKGROUND ===
+        // === PARALLAX BACKGROUND ===
         CreateBackground();
 
         // Save the scene (ensure directory exists first)
@@ -728,28 +756,60 @@ public class GameSetupEditor : EditorWindow
 
     private static void CreateGround(Sprite groundSprite)
     {
-        // Create a long ground platform
+        // Main ground
         GameObject ground = new GameObject("Ground");
         ground.layer = LayerMask.NameToLayer("Ground");
-        ground.tag = "Untagged";
         ground.isStatic = true;
 
         SpriteRenderer sr = ground.AddComponent<SpriteRenderer>();
         sr.sprite = groundSprite;
-        sr.color = new Color(0.4f, 0.5f, 0.3f);
+        sr.color = new Color(0.35f, 0.45f, 0.25f);
         sr.sortingLayerName = "Background";
         sr.drawMode = SpriteDrawMode.Tiled;
-        sr.size = new Vector2(50f, 2f);
+        sr.size = new Vector2(60f, 2f);
 
         BoxCollider2D col = ground.AddComponent<BoxCollider2D>();
-        col.size = new Vector2(50f, 2f);
+        col.size = new Vector2(60f, 2f);
 
         ground.transform.position = new Vector3(0f, -1f, 0f);
 
-        // Add some platforms
-        CreatePlatform("Platform1", new Vector3(-8f, 2f, 0f), new Vector2(4f, 0.5f), groundSprite);
-        CreatePlatform("Platform2", new Vector3(6f, 3f, 0f), new Vector2(5f, 0.5f), groundSprite);
-        CreatePlatform("Platform3", new Vector3(0f, 5f, 0f), new Vector2(3f, 0.5f), groundSprite);
+        // Arena platforms — varied heights for interesting combat
+        CreatePlatform("Platform_Left_Low",   new Vector3(-10f, 1.5f, 0f), new Vector2(5f, 0.5f), groundSprite);
+        CreatePlatform("Platform_Left_High",  new Vector3(-7f,  3.5f, 0f), new Vector2(3f, 0.5f), groundSprite);
+        CreatePlatform("Platform_Center",     new Vector3(0f,   4.5f, 0f), new Vector2(4f, 0.5f), groundSprite);
+        CreatePlatform("Platform_Right_Low",  new Vector3(9f,   2.0f, 0f), new Vector2(5f, 0.5f), groundSprite);
+        CreatePlatform("Platform_Right_High", new Vector3(6f,   4.0f, 0f), new Vector2(3f, 0.5f), groundSprite);
+        CreatePlatform("Platform_Far_Left",   new Vector3(-18f, 1.0f, 0f), new Vector2(4f, 0.5f), groundSprite);
+        CreatePlatform("Platform_Far_Right",  new Vector3(18f,  1.0f, 0f), new Vector2(4f, 0.5f), groundSprite);
+    }
+
+    private static void PlaceProps(GameObject cratePrefab, GameObject barrelPrefab)
+    {
+        // Ground level props
+        Vector3[] cratePositions = {
+            new Vector3(3f, 0.5f, 0f), new Vector3(-5f, 0.5f, 0f),
+            new Vector3(12f, 0.5f, 0f), new Vector3(-12f, 0.5f, 0f),
+            new Vector3(0f, 5.0f, 0f),  // On center platform
+        };
+        Vector3[] barrelPositions = {
+            new Vector3(7f, 0.5f, 0f), new Vector3(-2f, 0.5f, 0f),
+            new Vector3(10f, 2.7f, 0f), // On right platform
+            new Vector3(-9f, 4.2f, 0f), // On left high platform
+        };
+
+        foreach (var pos in cratePositions)
+        {
+            if (cratePrefab == null) break;
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(cratePrefab);
+            go.transform.position = pos;
+        }
+
+        foreach (var pos in barrelPositions)
+        {
+            if (barrelPrefab == null) break;
+            var go = (GameObject)PrefabUtility.InstantiatePrefab(barrelPrefab);
+            go.transform.position = pos;
+        }
     }
 
     private static void CreatePlatform(string name, Vector3 position, Vector2 size, Sprite sprite)
@@ -775,28 +835,56 @@ public class GameSetupEditor : EditorWindow
     {
         GameObject spawnPointsParent = new GameObject("SpawnPoints");
 
-        // Create spawn points off-screen on both sides
-        Transform[] spawnTransforms = new Transform[4];
+        // Ground spawn points off-screen on both sides, at varied heights
+        Vector3[] groundSpawnPositions = {
+            new Vector3( 17f, 1f,  0f),
+            new Vector3(-17f, 1f,  0f),
+            new Vector3( 19f, 3f,  0f),
+            new Vector3(-19f, 3f,  0f),
+            new Vector3( 16f, 0.5f, 0f),
+            new Vector3(-16f, 0.5f, 0f),
+        };
 
-        for (int i = 0; i < 4; i++)
+        Transform[] spawnTransforms = new Transform[groundSpawnPositions.Length];
+        for (int i = 0; i < groundSpawnPositions.Length; i++)
         {
-            GameObject sp = new GameObject("SpawnPoint_" + i);
+            var sp = new GameObject("SpawnPoint_" + i);
             sp.transform.SetParent(spawnPointsParent.transform);
-
-            float x = (i % 2 == 0 ? 1f : -1f) * (15f + i * 2f);
-            float y = 1f;
-            sp.transform.position = new Vector3(x, y, 0f);
-
+            sp.transform.position = groundSpawnPositions[i];
             spawnTransforms[i] = sp.transform;
         }
 
-        // Assign spawn points to wave manager
+        // Aerial spawn points for drones (high, off-screen)
+        Vector3[] aerialPositions = {
+            new Vector3( 18f, 8f, 0f),
+            new Vector3(-18f, 8f, 0f),
+            new Vector3( 14f, 7f, 0f),
+            new Vector3(-14f, 7f, 0f),
+        };
+
+        Transform[] aerialTransforms = new Transform[aerialPositions.Length];
+        for (int i = 0; i < aerialPositions.Length; i++)
+        {
+            var sp = new GameObject("AerialSpawn_" + i);
+            sp.transform.SetParent(spawnPointsParent.transform);
+            sp.transform.position = aerialPositions[i];
+            aerialTransforms[i] = sp.transform;
+        }
+
+        // Assign to wave manager
         SerializedProperty spawnPointsProp = wmSO.FindProperty("spawnPoints");
         spawnPointsProp.arraySize = spawnTransforms.Length;
         for (int i = 0; i < spawnTransforms.Length; i++)
-        {
             spawnPointsProp.GetArrayElementAtIndex(i).objectReferenceValue = spawnTransforms[i];
+
+        SerializedProperty aerialProp = wmSO.FindProperty("aerialSpawnPoints");
+        if (aerialProp != null)
+        {
+            aerialProp.arraySize = aerialTransforms.Length;
+            for (int i = 0; i < aerialTransforms.Length; i++)
+                aerialProp.GetArrayElementAtIndex(i).objectReferenceValue = aerialTransforms[i];
         }
+
         wmSO.ApplyModifiedProperties();
     }
 
@@ -814,10 +902,23 @@ public class GameSetupEditor : EditorWindow
 
         canvasObj.AddComponent<UnityEngine.UI.GraphicRaycaster>();
 
-        // Score Text (top-left)
-        GameObject scoreObj = CreateUIText("ScoreText", canvasObj.transform,
-            new Vector2(20, -20), new Vector2(300, 50),
-            "SCORE: 0", TextAnchor.UpperLeft, 28, Color.white);
+        // Score Text (top-right corner)
+        GameObject scoreObj = new GameObject("ScoreText");
+        scoreObj.transform.SetParent(canvasObj.transform, false);
+        RectTransform scoreRect = scoreObj.AddComponent<RectTransform>();
+        scoreRect.anchorMin = new Vector2(1, 1);
+        scoreRect.anchorMax = new Vector2(1, 1);
+        scoreRect.pivot = new Vector2(1, 1);
+        scoreRect.anchoredPosition = new Vector2(-20, -20);
+        scoreRect.sizeDelta = new Vector2(300, 50);
+        TextMeshProUGUI scoreTMP = scoreObj.AddComponent<TextMeshProUGUI>();
+        scoreTMP.text = "SCORE: 0";
+        scoreTMP.fontSize = 28;
+        scoreTMP.color = Color.white;
+        scoreTMP.alignment = TextAlignmentOptions.TopRight;
+        scoreTMP.textWrappingMode = TextWrappingModes.NoWrap;
+        scoreTMP.outlineWidth = 0.2f;
+        scoreTMP.outlineColor = Color.black;
 
         // Wave Text (top-center)
         GameObject waveObj = CreateUIText("WaveText", canvasObj.transform,
@@ -884,6 +985,20 @@ public class GameSetupEditor : EditorWindow
 
         gameOverPanel.SetActive(false);
 
+        // Software cursor crosshair (always on top, hidden while hardware cursor is off)
+        Sprite crosshairSprite = CreateCrosshairSprite();
+        GameObject cursorObj = new GameObject("CursorCrosshair");
+        cursorObj.transform.SetParent(canvasObj.transform, false);
+        RectTransform cursorRect = cursorObj.AddComponent<RectTransform>();
+        cursorRect.sizeDelta = new Vector2(32, 32);
+        cursorRect.pivot = new Vector2(0.5f, 0.5f);
+        cursorRect.anchorMin = new Vector2(0, 0);
+        cursorRect.anchorMax = new Vector2(0, 0);
+        UnityEngine.UI.Image cursorImg = cursorObj.AddComponent<UnityEngine.UI.Image>();
+        if (crosshairSprite != null) cursorImg.sprite = crosshairSprite;
+        else { cursorImg.color = new Color(1f, 0.9f, 0f, 0.9f); }
+        cursorObj.transform.SetAsLastSibling();
+
         // Create UI Manager and assign references
         UIManager uiManager = canvasObj.AddComponent<UIManager>();
         SerializedObject uiSO = new SerializedObject(uiManager);
@@ -894,6 +1009,7 @@ public class GameSetupEditor : EditorWindow
         uiSO.FindProperty("announcementText").objectReferenceValue = announcementObj.GetComponent<TextMeshProUGUI>();
         uiSO.FindProperty("gameOverPanel").objectReferenceValue = gameOverPanel;
         uiSO.FindProperty("gameOverScoreText").objectReferenceValue = gameOverText.GetComponent<TextMeshProUGUI>();
+        uiSO.FindProperty("cursorImage").objectReferenceValue = cursorRect;
         uiSO.ApplyModifiedProperties();
 
         // World Space Canvas for text popups
@@ -936,29 +1052,11 @@ public class GameSetupEditor : EditorWindow
 
         RectTransform rect = obj.AddComponent<RectTransform>();
 
-        // Set anchors based on position
-        if (position.x <= 0 && position.y >= 0)
-        {
-            // Top-left
-            rect.anchorMin = new Vector2(0, 1);
-            rect.anchorMax = new Vector2(0, 1);
-            rect.pivot = new Vector2(0, 1);
-        }
-        else if (position.x > 0 && position.y >= 0)
-        {
-            // Top-right
-            rect.anchorMin = new Vector2(1, 1);
-            rect.anchorMax = new Vector2(1, 1);
-            rect.pivot = new Vector2(1, 1);
-        }
-        else if (Mathf.Approximately(position.x, 0) && Mathf.Approximately(position.y, 0))
-        {
-            // Center
-            rect.anchorMin = new Vector2(0.5f, 0.5f);
-            rect.anchorMax = new Vector2(0.5f, 0.5f);
-            rect.pivot = new Vector2(0.5f, 0.5f);
-        }
-
+        // Derive anchor and pivot directly from the TextAnchor enum
+        Vector2 anchorVec = GetAnchorFromTextAnchor(anchor);
+        rect.anchorMin = anchorVec;
+        rect.anchorMax = anchorVec;
+        rect.pivot = anchorVec;
         rect.anchoredPosition = position;
         rect.sizeDelta = size;
 
@@ -976,18 +1074,136 @@ public class GameSetupEditor : EditorWindow
         return obj;
     }
 
+    private static Vector2 GetAnchorFromTextAnchor(TextAnchor anchor)
+    {
+        switch (anchor)
+        {
+            case TextAnchor.UpperLeft:    return new Vector2(0,    1);
+            case TextAnchor.UpperCenter:  return new Vector2(0.5f, 1);
+            case TextAnchor.UpperRight:   return new Vector2(1,    1);
+            case TextAnchor.MiddleLeft:   return new Vector2(0,    0.5f);
+            case TextAnchor.MiddleCenter: return new Vector2(0.5f, 0.5f);
+            case TextAnchor.MiddleRight:  return new Vector2(1,    0.5f);
+            case TextAnchor.LowerLeft:    return new Vector2(0,    0);
+            case TextAnchor.LowerCenter:  return new Vector2(0.5f, 0);
+            case TextAnchor.LowerRight:   return new Vector2(1,    0);
+            default:                      return new Vector2(0.5f, 0.5f);
+        }
+    }
+
+    private static Sprite CreateCrosshairSprite()
+    {
+        const int size = 32;
+        Texture2D tex = new Texture2D(size, size, TextureFormat.RGBA32, false);
+        Color[] pixels = new Color[size * size];
+        for (int i = 0; i < pixels.Length; i++) pixels[i] = Color.clear;
+
+        Color c = new Color(1f, 0.9f, 0f, 0.95f); // bright yellow
+        int cx = size / 2, cy = size / 2;
+
+        // Circle ring (radius 11–13)
+        for (int a = 0; a < 360; a++)
+        {
+            float rad = a * Mathf.Deg2Rad;
+            for (int r = 11; r <= 13; r++)
+            {
+                int px = cx + Mathf.RoundToInt(r * Mathf.Cos(rad));
+                int py = cy + Mathf.RoundToInt(r * Mathf.Sin(rad));
+                if (px >= 0 && px < size && py >= 0 && py < size)
+                    pixels[py * size + px] = c;
+            }
+        }
+
+        // Cross lines with center gap (gap 3–9, total arm length to ring)
+        for (int t = -1; t <= 1; t++)
+        {
+            for (int d = 3; d <= 9; d++)
+            {
+                if (cx + d < size) pixels[(cy + t) * size + (cx + d)] = c;
+                if (cx - d >= 0)   pixels[(cy + t) * size + (cx - d)] = c;
+                if (cy + d < size) pixels[(cy + d) * size + (cx + t)] = c;
+                if (cy - d >= 0)   pixels[(cy - d) * size + (cx + t)] = c;
+            }
+        }
+
+        tex.SetPixels(pixels);
+        tex.Apply();
+
+        if (!System.IO.Directory.Exists("Assets/Sprites"))
+            System.IO.Directory.CreateDirectory("Assets/Sprites");
+
+        string path = "Assets/Sprites/Crosshair.png";
+        System.IO.File.WriteAllBytes(path, tex.EncodeToPNG());
+        Object.DestroyImmediate(tex);
+        AssetDatabase.ImportAsset(path);
+
+        TextureImporter importer = AssetImporter.GetAtPath(path) as TextureImporter;
+        if (importer != null)
+        {
+            importer.textureType = TextureImporterType.Sprite;
+            importer.spritePixelsPerUnit = 32;
+            importer.filterMode = FilterMode.Point;
+            importer.textureCompression = TextureImporterCompression.Uncompressed;
+            TextureImporterSettings settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = SpriteMeshType.FullRect;
+            importer.SetTextureSettings(settings);
+            importer.SaveAndReimport();
+        }
+
+        return AssetDatabase.LoadAssetAtPath<Sprite>(path);
+    }
+
     private static void CreateBackground()
     {
-        // Simple sky background
-        GameObject bg = new GameObject("Background");
+        // Parallax container
+        GameObject bgContainer = new GameObject("Background_Parallax");
+        ParallaxBackground parallax = bgContainer.AddComponent<ParallaxBackground>();
 
-        SpriteRenderer sr = bg.AddComponent<SpriteRenderer>();
-        sr.color = new Color(0.5f, 0.7f, 1f);
+        // Layer 0: Sky (fixed, no parallax)
+        GameObject sky = CreateBgLayer("BG_Sky", new Color(0.45f, 0.65f, 0.95f), -12, 0f, -2f);
+        sky.transform.SetParent(bgContainer.transform);
+        sky.transform.localScale = new Vector3(120f, 60f, 1f);
+
+        // Layer 1: Far buildings silhouette (very slow)
+        GameObject buildings = CreateBgLayer("BG_Buildings", new Color(0.3f, 0.3f, 0.4f), -8, 0.1f, 0f);
+        buildings.transform.SetParent(bgContainer.transform);
+        buildings.transform.localScale = new Vector3(60f, 15f, 1f);
+        buildings.transform.position = new Vector3(0f, 3f, 0f);
+
+        // Layer 2: Mid-ground (moderate parallax)
+        GameObject mid = CreateBgLayer("BG_Mid", new Color(0.25f, 0.38f, 0.22f), -5, 0.4f, 0f);
+        mid.transform.SetParent(bgContainer.transform);
+        mid.transform.localScale = new Vector3(40f, 5f, 1f);
+        mid.transform.position = new Vector3(0f, -0.5f, 0f);
+
+        // Wire layers into ParallaxBackground via SerializedObject
+        SerializedObject pso = new SerializedObject(parallax);
+        SerializedProperty layersProp = pso.FindProperty("layers");
+        layersProp.arraySize = 3;
+
+        SetParallaxLayer(layersProp.GetArrayElementAtIndex(0), sky.transform, 0f, false);
+        SetParallaxLayer(layersProp.GetArrayElementAtIndex(1), buildings.transform, 0.1f, true);
+        SetParallaxLayer(layersProp.GetArrayElementAtIndex(2), mid.transform, 0.4f, true);
+
+        pso.ApplyModifiedProperties();
+    }
+
+    private static GameObject CreateBgLayer(string name, Color color, int sortOrder, float parallaxFactor, float offsetZ)
+    {
+        GameObject go = new GameObject(name);
+        SpriteRenderer sr = go.AddComponent<SpriteRenderer>();
+        sr.color = color;
         sr.sortingLayerName = "Background";
-        sr.sortingOrder = -10;
+        sr.sortingOrder = sortOrder;
+        go.transform.position = new Vector3(0f, 0f, offsetZ);
+        return go;
+    }
 
-        // Make it large enough to fill the view
-        bg.transform.localScale = new Vector3(100f, 50f, 1f);
-        bg.transform.position = new Vector3(0f, 10f, 5f);
+    private static void SetParallaxLayer(SerializedProperty layerProp, Transform t, float factor, bool loop)
+    {
+        layerProp.FindPropertyRelative("layerTransform").objectReferenceValue = t;
+        layerProp.FindPropertyRelative("parallaxFactor").floatValue = factor;
+        layerProp.FindPropertyRelative("loopHorizontally").boolValue = loop;
     }
 }

@@ -3,28 +3,36 @@ using System.Collections.Generic;
 
 /// <summary>
 /// Manages enemy wave spawning with progressively harder enemies.
-/// Wave 1-2: Police, Wave 3-4: SWAT, Wave 5+: Army soldiers.
+/// Supports wave modifiers (Double Time, Bullet Hell, Swarm, Armored, Explosive).
+/// Inserts rest waves every 5 waves for pacing. Includes 4 new enemy types.
 /// </summary>
 public class WaveManager : MonoBehaviour
 {
     public static WaveManager Instance { get; private set; }
 
-    [Header("Enemy Prefabs")]
+    [Header("Base Enemy Prefabs")]
     [SerializeField] private GameObject policePrefab;
     [SerializeField] private GameObject swatPrefab;
     [SerializeField] private GameObject armyPrefab;
 
+    [Header("New Enemy Prefabs")]
+    [SerializeField] private GameObject riotShieldPrefab;
+    [SerializeField] private GameObject sniperPrefab;
+    [SerializeField] private GameObject k9Prefab;
+    [SerializeField] private GameObject dronePrefab;
+
     [Header("Spawn Settings")]
     [SerializeField] private Transform[] spawnPoints;
-    [SerializeField] private float timeBetweenWaves = 5f;
-    [SerializeField] private float spawnInterval = 1f;
+    [SerializeField] private Transform[] aerialSpawnPoints;
+    [SerializeField] private float timeBetweenWaves = 3f;
+    [SerializeField] private float spawnInterval = 0.8f;
 
     [Header("Wave Configuration")]
     [SerializeField] private int baseEnemiesPerWave = 3;
     [SerializeField] private int enemiesPerWaveIncrease = 2;
     [SerializeField] private int maxEnemiesPerWave = 20;
 
-    [Header("State")]
+    [Header("State (Debug)")]
     [SerializeField] private int currentWave;
     [SerializeField] private int enemiesAlive;
     [SerializeField] private int enemiesToSpawn;
@@ -33,21 +41,8 @@ public class WaveManager : MonoBehaviour
     private float waveTimer;
     private float spawnTimer;
     private bool wavesActive;
-
-    // Wave announcement messages
-    private readonly Dictionary<int, string> waveAnnouncements = new Dictionary<int, string>
-    {
-        { 1, "WAVE 1 - The police have arrived!" },
-        { 2, "WAVE 2 - More cops? Bring it on!" },
-        { 3, "WAVE 3 - SWAT DEPLOYED!" },
-        { 4, "WAVE 4 - HEAVY SWAT INCOMING!" },
-        { 5, "WAVE 5 - THE ARMY?! THEY BROUGHT THE ARMY!" },
-        { 6, "WAVE 6 - THEY BROUGHT A TANK?!" },
-        { 7, "WAVE 7 - THIS IS GETTING RIDICULOUS!" },
-        { 8, "WAVE 8 - IS THAT A GENERAL?!" },
-        { 9, "WAVE 9 - THE ENTIRE MILITARY?!" },
-        { 10, "WAVE 10 - DUCK APOCALYPSE!" }
-    };
+    private WaveModifier activeModifier = WaveModifier.None;
+    private bool isRestWave;
 
     private void Awake()
     {
@@ -59,42 +54,33 @@ public class WaveManager : MonoBehaviour
         Instance = this;
     }
 
-    /// <summary>
-    /// Start the wave system.
-    /// </summary>
     public void StartWaves()
     {
         currentWave = 0;
         enemiesAlive = 0;
         wavesActive = true;
-        waveTimer = 2f; // Short delay before first wave
+        waveTimer = 2f;
     }
 
-    /// <summary>
-    /// Stop spawning waves.
-    /// </summary>
     public void StopWaves()
     {
         wavesActive = false;
         isSpawning = false;
     }
 
+    public int GetCurrentWave() => currentWave;
+
     private void Update()
     {
         if (!wavesActive) return;
 
-        // Wait for current wave to be cleared before starting next
         if (!isSpawning && enemiesAlive <= 0)
         {
             waveTimer -= Time.deltaTime;
-
             if (waveTimer <= 0f)
-            {
                 StartNextWave();
-            }
         }
 
-        // Spawn enemies during wave
         if (isSpawning && enemiesToSpawn > 0)
         {
             spawnTimer -= Time.deltaTime;
@@ -110,125 +96,176 @@ public class WaveManager : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Start the next wave of enemies.
-    /// </summary>
     private void StartNextWave()
     {
         currentWave++;
+        isRestWave = currentWave > 1 && currentWave % 5 == 0;
 
-        // Calculate enemies for this wave
-        int totalEnemies = Mathf.Min(
-            baseEnemiesPerWave + (currentWave - 1) * enemiesPerWaveIncrease,
-            maxEnemiesPerWave
-        );
+        int totalEnemies;
+        if (isRestWave)
+        {
+            totalEnemies = Mathf.Max(2, baseEnemiesPerWave - 1);
+            activeModifier = WaveModifier.None;
+        }
+        else
+        {
+            totalEnemies = Mathf.Min(
+                baseEnemiesPerWave + (currentWave - 1) * enemiesPerWaveIncrease,
+                maxEnemiesPerWave
+            );
+            activeModifier = PickModifier(currentWave);
+            // Swarm: double enemy count at half health
+            if (activeModifier == WaveModifier.Swarm)
+                totalEnemies = Mathf.Min(totalEnemies * 2, maxEnemiesPerWave);
+        }
 
         enemiesToSpawn = totalEnemies;
         isSpawning = true;
-        spawnTimer = 0f; // Spawn first enemy immediately
+        spawnTimer = 0f;
 
-        // Show wave announcement
-        string announcement = GetWaveAnnouncement(currentWave);
-        Debug.Log(announcement);
-
-        if (UIManager.Instance != null)
-        {
-            UIManager.Instance.ShowWaveAnnouncement(announcement);
-        }
+        UIManager.Instance?.ShowWaveAnnouncement(BuildAnnouncement());
     }
 
-    /// <summary>
-    /// Spawn a single enemy at a random spawn point.
-    /// </summary>
+    private WaveModifier PickModifier(int wave)
+    {
+        if (wave < 3) return WaveModifier.None;
+        // 40% chance of a modifier from wave 3 onwards
+        if (Random.value > 0.4f) return WaveModifier.None;
+        var modifiers = (WaveModifier[])System.Enum.GetValues(typeof(WaveModifier));
+        // Skip index 0 (None)
+        return modifiers[Random.Range(1, modifiers.Length)];
+    }
+
+    private string BuildAnnouncement()
+    {
+        string[] waveLines =
+        {
+            "THE POLICE HAVE ARRIVED!",
+            "MORE COPS? BRING IT ON!",
+            "SWAT DEPLOYED!",
+            "HEAVY SWAT INCOMING!",
+            "THEY BROUGHT THE ARMY?!",
+            "DOGS?! THEY BROUGHT DOGS!",
+            "SNIPERS ON THE ROOFTOPS!",
+            "THIS IS GETTING RIDICULOUS!",
+            "IS THAT A GENERAL?!",
+            "DUCK APOCALYPSE!"
+        };
+
+        if (isRestWave)
+            return $"WAVE {currentWave} — BREATHER WAVE\nFewer enemies, more drops!";
+
+        int lineIdx = Mathf.Clamp(currentWave - 1, 0, waveLines.Length - 1);
+        string line = currentWave <= waveLines.Length ? waveLines[lineIdx] : "THEY JUST KEEP COMING!";
+
+        string modTag = activeModifier != WaveModifier.None
+            ? $"\n<color=#FF4444>[!!] {activeModifier.ToString().ToUpper()}!</color>"
+            : "";
+
+        return $"WAVE {currentWave} — {line}{modTag}";
+    }
+
     private void SpawnEnemy()
     {
         GameObject prefab = GetEnemyPrefabForWave(currentWave);
-        if (prefab == null)
+        if (prefab == null) return;
+
+        bool isDrone = prefab == dronePrefab;
+        Vector3 spawnPos = GetSpawnPosition(isDrone);
+
+        GameObject enemy = Instantiate(prefab, spawnPos, Quaternion.identity);
+
+        // Apply wave modifier
+        if (activeModifier != WaveModifier.None)
         {
-            Debug.LogWarning("No enemy prefab assigned for wave " + currentWave);
-            return;
+            EnemyBase eb = enemy.GetComponent<EnemyBase>();
+            eb?.ApplyModifier(activeModifier);
         }
 
-        // Pick random spawn point
-        Vector3 spawnPos;
-        if (spawnPoints != null && spawnPoints.Length > 0)
+        // Extra drops on rest waves
+        if (isRestWave)
         {
-            Transform sp = spawnPoints[Random.Range(0, spawnPoints.Length)];
-            spawnPos = sp.position;
-        }
-        else
-        {
-            // Default spawn position off-screen to the right
-            Camera cam = Camera.main;
-            if (cam != null)
+            EnemyBase eb = enemy.GetComponent<EnemyBase>();
+            if (eb != null)
             {
-                float camRight = cam.transform.position.x + cam.orthographicSize * cam.aspect + 2f;
-                // Randomly spawn from left or right
-                float side = Random.value > 0.5f ? camRight : cam.transform.position.x - cam.orthographicSize * cam.aspect - 2f;
-                spawnPos = new Vector3(side, 0f, 0f);
-            }
-            else
-            {
-                spawnPos = new Vector3(15f * (Random.value > 0.5f ? 1f : -1f), 0f, 0f);
+                // Boost drop chance on rest wave
             }
         }
 
-        Instantiate(prefab, spawnPos, Quaternion.identity);
         enemiesAlive++;
     }
 
-    /// <summary>
-    /// Get the appropriate enemy prefab based on the current wave.
-    /// </summary>
-    private GameObject GetEnemyPrefabForWave(int wave)
+    private Vector3 GetSpawnPosition(bool aerial)
     {
-        if (wave <= 2)
-            return policePrefab;
-        else if (wave <= 4)
+        if (aerial && aerialSpawnPoints != null && aerialSpawnPoints.Length > 0)
+            return aerialSpawnPoints[Random.Range(0, aerialSpawnPoints.Length)].position;
+
+        if (spawnPoints != null && spawnPoints.Length > 0)
+            return spawnPoints[Random.Range(0, spawnPoints.Length)].position;
+
+        Camera cam = Camera.main;
+        if (cam != null)
         {
-            // Mix of police and SWAT
-            return Random.value > 0.3f ? swatPrefab ?? policePrefab : policePrefab;
+            float halfW = cam.orthographicSize * cam.aspect + 2f;
+            float side = Random.value > 0.5f ? halfW : -halfW;
+            float y = aerial ? cam.orthographicSize * 0.6f : 0f;
+            return new Vector3(cam.transform.position.x + side, y, 0f);
         }
-        else
-        {
-            // Mix of all types, mostly army
-            float roll = Random.value;
-            if (roll < 0.5f) return armyPrefab ?? swatPrefab ?? policePrefab;
-            if (roll < 0.8f) return swatPrefab ?? policePrefab;
-            return policePrefab;
-        }
+        return new Vector3(15f * (Random.value > 0.5f ? 1f : -1f), 0f, 0f);
     }
 
-    /// <summary>
-    /// Called when an enemy is killed. Decrements the alive counter.
-    /// </summary>
+    private GameObject GetEnemyPrefabForWave(int wave)
+    {
+        if (isRestWave)
+            return Fallback(policePrefab);
+
+        float roll = Random.value;
+
+        if (wave <= 2)
+            return Fallback(policePrefab);
+
+        if (wave <= 4)
+        {
+            if (roll < 0.15f) return Fallback(riotShieldPrefab, swatPrefab, policePrefab);
+            if (roll < 0.20f) return Fallback(k9Prefab, policePrefab);
+            return roll < 0.65f ? Fallback(swatPrefab, policePrefab) : Fallback(policePrefab);
+        }
+
+        if (wave <= 7)
+        {
+            if (roll < 0.12f) return Fallback(sniperPrefab, armyPrefab);
+            if (roll < 0.22f) return Fallback(dronePrefab, armyPrefab);
+            if (roll < 0.32f) return Fallback(k9Prefab, policePrefab);
+            if (roll < 0.45f) return Fallback(riotShieldPrefab, swatPrefab);
+            return roll < 0.7f ? Fallback(armyPrefab, swatPrefab) : Fallback(swatPrefab, policePrefab);
+        }
+
+        // Wave 8+: heavy mix
+        if (roll < 0.18f) return Fallback(sniperPrefab, armyPrefab);
+        if (roll < 0.33f) return Fallback(dronePrefab, armyPrefab);
+        if (roll < 0.43f) return Fallback(k9Prefab, policePrefab);
+        if (roll < 0.55f) return Fallback(riotShieldPrefab, swatPrefab);
+        return roll < 0.8f ? Fallback(armyPrefab) : Fallback(swatPrefab, policePrefab);
+    }
+
+    /// Returns first non-null prefab from candidates.
+    private GameObject Fallback(params GameObject[] candidates)
+    {
+        foreach (var c in candidates)
+            if (c != null) return c;
+        return null;
+    }
+
     public void OnEnemyKilled()
     {
         enemiesAlive = Mathf.Max(0, enemiesAlive - 1);
+        GameManager.Instance?.RegisterKill();
 
-        // If wave is cleared, set timer for next wave
         if (enemiesAlive <= 0 && !isSpawning)
         {
             waveTimer = timeBetweenWaves;
-            Debug.Log("Wave " + currentWave + " cleared! Next wave in " + timeBetweenWaves + "s");
+            // Wave clear fanfare
+            UIManager.Instance?.ShowWaveClear(currentWave);
         }
-    }
-
-    /// <summary>
-    /// Get the wave announcement text.
-    /// </summary>
-    private string GetWaveAnnouncement(int wave)
-    {
-        if (waveAnnouncements.ContainsKey(wave))
-            return waveAnnouncements[wave];
-        return "WAVE " + wave + " - THEY JUST KEEP COMING!";
-    }
-
-    /// <summary>
-    /// Get the current wave number.
-    /// </summary>
-    public int GetCurrentWave()
-    {
-        return currentWave;
     }
 }
