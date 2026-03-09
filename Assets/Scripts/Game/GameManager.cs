@@ -137,7 +137,7 @@ public class GameManager : MonoBehaviour
         int idx = -1;
         for (int i = 0; i < UnityEngine.SceneManagement.SceneManager.sceneCountInBuildSettings; i++)
         {
-            string path = UnityEngine.SceneManagement.SceneUtility.GetScenePathByIndex(i);
+            string path = UnityEngine.SceneManagement.SceneUtility.GetScenePathByBuildIndex(i);
             string sceneName = System.IO.Path.GetFileNameWithoutExtension(path);
             if (string.Equals(sceneName, MainMenuScene, System.StringComparison.OrdinalIgnoreCase))
             { idx = i; break; }
