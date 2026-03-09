@@ -1,8 +1,10 @@
+using System.Collections;
 using UnityEngine;
 using UnityEngine.InputSystem;
 
 /// <summary>
 /// Handles all player input and movement for the Battle Duck.
+/// Includes coyote time, jump buffering, squash/stretch, Wing Dash, and Ground Pound.
 /// Attach to the Player GameObject with a Rigidbody2D and BoxCollider2D.
 /// </summary>
 public class PlayerController : MonoBehaviour
@@ -16,6 +18,25 @@ public class PlayerController : MonoBehaviour
     [SerializeField] private float groundCheckRadius = 0.2f;
     [SerializeField] private LayerMask groundLayer;
 
+    [Header("Coyote Time & Jump Buffer")]
+    [SerializeField] private float coyoteTime = 0.12f;
+    [SerializeField] private float jumpBufferTime = 0.12f;
+
+    [Header("Squash & Stretch")]
+    [SerializeField] private float squashAmount = 0.3f;
+    [SerializeField] private float squashRecoverSpeed = 8f;
+
+    [Header("Wing Dash")]
+    [SerializeField] private float dashSpeed = 18f;
+    [SerializeField] private float dashDuration = 0.18f;
+    [SerializeField] private float dashCooldown = 1.5f;
+    [SerializeField] private int dashAfterimageCount = 4;
+
+    [Header("Ground Pound")]
+    [SerializeField] private float groundPoundForce = 28f;
+    [SerializeField] private float groundPoundRadius = 2.5f;
+    [SerializeField] private float groundPoundDamage = 35f;
+
     [Header("Combat")]
     [SerializeField] private WeaponSystem weaponSystem;
     [SerializeField] private float quackStunRadius = 3f;
@@ -25,26 +46,44 @@ public class PlayerController : MonoBehaviour
     [Header("References")]
     [SerializeField] private Transform firePoint;
 
+    // Components
     private Rigidbody2D rb;
     private SpriteRenderer spriteRenderer;
+
+    // State
     private bool isGrounded;
+    private bool wasGrounded;
     private float horizontalInput;
     private bool facingRight = true;
     private float quackTimer;
+    private float coyoteCounter;
+    private float jumpBufferCounter;
+    private float dashTimer;
+    private bool isDashing;
+    private bool isGroundPounding;
+    private Vector3 baseScale;
+    private float speedMultiplier = 1f;
 
+    // Input actions
     private InputAction moveAction;
     private InputAction jumpAction;
     private InputAction shootAction;
     private InputAction grenadeAction;
     private InputAction quackAction;
+    private InputAction dashAction;
 
     private void Awake()
     {
         rb = GetComponent<Rigidbody2D>();
         spriteRenderer = GetComponent<SpriteRenderer>();
+        baseScale = transform.localScale;
 
         if (weaponSystem == null)
             weaponSystem = GetComponent<WeaponSystem>();
+
+        // Auto-attach combo system
+        if (GetComponent<ComboSystem>() == null)
+            gameObject.AddComponent<ComboSystem>();
 
         SetupInputActions();
     }
@@ -74,6 +113,10 @@ public class PlayerController : MonoBehaviour
 
         quackAction = new InputAction("Quack", InputActionType.Button);
         quackAction.AddBinding("<Keyboard>/q");
+
+        dashAction = new InputAction("Dash", InputActionType.Button);
+        dashAction.AddBinding("<Keyboard>/leftShift");
+        dashAction.AddBinding("<Keyboard>/rightShift");
     }
 
     private void OnEnable()
@@ -83,6 +126,7 @@ public class PlayerController : MonoBehaviour
         shootAction.Enable();
         grenadeAction.Enable();
         quackAction.Enable();
+        dashAction.Enable();
     }
 
     private void OnDisable()
@@ -92,6 +136,7 @@ public class PlayerController : MonoBehaviour
         shootAction.Disable();
         grenadeAction.Disable();
         quackAction.Disable();
+        dashAction.Disable();
     }
 
     private void OnDestroy()
@@ -101,46 +146,255 @@ public class PlayerController : MonoBehaviour
         shootAction.Dispose();
         grenadeAction.Dispose();
         quackAction.Dispose();
+        dashAction.Dispose();
     }
 
     private void Update()
     {
+        if (isDashing) return;
+
         horizontalInput = moveAction.ReadValue<float>();
 
-        if (horizontalInput > 0 && !facingRight)
-            Flip();
-        else if (horizontalInput < 0 && facingRight)
-            Flip();
+        if (horizontalInput > 0.1f && !facingRight) Flip();
+        else if (horizontalInput < -0.1f && facingRight) Flip();
 
-        isGrounded = false;
-        if (groundCheck != null)
-            isGrounded = Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
+        // Ground check
+        wasGrounded = isGrounded;
+        isGrounded = groundCheck != null && Physics2D.OverlapCircle(groundCheck.position, groundCheckRadius, groundLayer);
 
-        if (jumpAction.WasPressedThisFrame() && isGrounded)
-            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+        // Landing effects
+        if (isGrounded && !wasGrounded)
+            OnLand();
 
+        // Coyote time counter
+        if (isGrounded)
+            coyoteCounter = coyoteTime;
+        else
+            coyoteCounter -= Time.deltaTime;
+
+        // Jump buffer counter
+        if (jumpAction.WasPressedThisFrame())
+            jumpBufferCounter = jumpBufferTime;
+        else
+            jumpBufferCounter -= Time.deltaTime;
+
+        // Jump — consume buffer if grounded or within coyote window
+        if (jumpBufferCounter > 0f && coyoteCounter > 0f)
+        {
+            Jump();
+            jumpBufferCounter = 0f;
+            coyoteCounter = 0f;
+        }
+
+        // Ground pound — hold down while airborne
+        if (!isGrounded && !isGroundPounding && moveAction.ReadValue<float>() == 0f)
+        {
+            // Check for down input (S or down arrow)
+            if (Keyboard.current != null && (Keyboard.current.sKey.isPressed || Keyboard.current.downArrowKey.isPressed))
+                StartCoroutine(DoGroundPound());
+        }
+
+        // Shoot
         if (shootAction.WasPressedThisFrame() && weaponSystem != null)
             weaponSystem.Shoot(GetAimDirection());
 
+        // Auto-fire
+        if (shootAction.IsPressed() && weaponSystem != null)
+            weaponSystem.ShootAuto(GetAimDirection());
+
+        // Grenade
         if (grenadeAction.WasPressedThisFrame() && weaponSystem != null)
             weaponSystem.ThrowGrenade(GetAimDirection());
 
+        // Quack
         quackTimer -= Time.deltaTime;
         if (quackAction.WasPressedThisFrame() && quackTimer <= 0f)
         {
             Quack();
             quackTimer = quackCooldown;
         }
+
+        // Dash
+        dashTimer -= Time.deltaTime;
+        if (dashAction.WasPressedThisFrame() && dashTimer <= 0f)
+            StartCoroutine(DoDash());
+
+        // Squash/stretch recover
+        transform.localScale = Vector3.Lerp(transform.localScale, baseScale, squashRecoverSpeed * Time.deltaTime);
     }
 
     private void FixedUpdate()
     {
-        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
+        if (isDashing) return;
+        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed * speedMultiplier, rb.linearVelocity.y);
     }
 
-    /// <summary>
-    /// Flips the player sprite horizontally.
-    /// </summary>
+    private void Jump()
+    {
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
+        AudioManager.PlaySFX("jump");
+
+        // Stretch upward on jump
+        transform.localScale = new Vector3(baseScale.x * (1f - squashAmount * 0.5f), baseScale.y * (1f + squashAmount), baseScale.z);
+    }
+
+    private void OnLand()
+    {
+        // Squash on landing — intensity based on fall velocity
+        float fallSpeed = Mathf.Abs(rb.linearVelocity.y);
+        float squash = Mathf.Clamp(fallSpeed / 20f, 0.1f, 0.4f);
+        transform.localScale = new Vector3(baseScale.x * (1f + squash), baseScale.y * (1f - squash), baseScale.z);
+
+        // Landing dust
+        Vector3 dustPos = groundCheck != null ? groundCheck.position : transform.position;
+        ParticleManager.SpawnLandingDust(dustPos);
+
+        // Shake based on fall speed
+        CameraFollow.ShakeCamera(squash * 0.3f);
+        AudioManager.PlaySFX("land");
+
+        // If ground pounding, do shockwave
+        if (isGroundPounding)
+        {
+            isGroundPounding = false;
+            DoGroundPoundImpact();
+        }
+    }
+
+    private IEnumerator DoGroundPound()
+    {
+        isGroundPounding = true;
+        rb.linearVelocity = new Vector2(rb.linearVelocity.x, -groundPoundForce);
+        AudioManager.PlaySFX("ground_pound");
+        yield return new WaitUntil(() => isGrounded || !isGroundPounding);
+    }
+
+    private void DoGroundPoundImpact()
+    {
+        CameraFollow.ShakeCamera(0.4f);
+        JuiceManager.Instance?.KillStop();
+        AudioManager.PlaySFX("explosion");
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, groundPoundRadius);
+        foreach (Collider2D hit in hits)
+        {
+            if (hit.CompareTag("Player")) continue;
+
+            HealthSystem health = hit.GetComponent<HealthSystem>();
+            if (health != null)
+            {
+                float dist = Vector2.Distance(transform.position, hit.transform.position);
+                float dmg = groundPoundDamage * (1f - dist / groundPoundRadius);
+                health.TakeDamage(dmg);
+            }
+
+            Rigidbody2D hitRb = hit.GetComponent<Rigidbody2D>();
+            if (hitRb != null)
+            {
+                Vector2 dir = ((Vector2)hit.transform.position - (Vector2)transform.position).normalized + Vector2.up;
+                hitRb.AddForce(dir.normalized * 400f);
+            }
+
+            DestructibleProp prop = hit.GetComponent<DestructibleProp>();
+            prop?.TakeDamage(groundPoundDamage);
+        }
+
+        UIManager.Instance?.ShowTextPopup("GROUND POUND!", transform.position + Vector3.up);
+    }
+
+    private IEnumerator DoDash()
+    {
+        isDashing = true;
+        dashTimer = dashCooldown;
+
+        float dashDir = facingRight ? 1f : -1f;
+        Vector2 dashVelocity = new Vector2(dashDir * dashSpeed, 0f);
+
+        // Spawn afterimages
+        StartCoroutine(SpawnAfterimages());
+
+        AudioManager.PlaySFX("dash");
+
+        float elapsed = 0f;
+        while (elapsed < dashDuration)
+        {
+            rb.linearVelocity = dashVelocity;
+            elapsed += Time.deltaTime;
+            yield return null;
+        }
+
+        isDashing = false;
+    }
+
+    private IEnumerator SpawnAfterimages()
+    {
+        if (spriteRenderer == null) yield break;
+
+        for (int i = 0; i < dashAfterimageCount; i++)
+        {
+            var ghost = new GameObject("DashAfterimage");
+            ghost.transform.position = transform.position;
+            ghost.transform.localScale = transform.localScale;
+
+            var ghostSr = ghost.AddComponent<SpriteRenderer>();
+            ghostSr.sprite = spriteRenderer.sprite;
+            ghostSr.flipX = spriteRenderer.flipX;
+            ghostSr.sortingOrder = spriteRenderer.sortingOrder - 1;
+            ghostSr.color = new Color(0.4f, 0.8f, 1f, 0.6f);
+
+            Destroy(ghost, 0.2f);
+            yield return new WaitForSeconds(dashDuration / dashAfterimageCount);
+        }
+    }
+
+    private void Quack()
+    {
+        AudioManager.PlaySFX("quack");
+        UIManager.Instance?.ShowTextPopup("QUAAACK!", transform.position + Vector3.up);
+
+        // Visual shockwave ring
+        CreateQuackShockwave();
+
+        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, quackStunRadius);
+        foreach (Collider2D hit in hits)
+        {
+            if (hit.CompareTag("Player")) continue;
+
+            // Stun enemies
+            EnemyBase enemy = hit.GetComponent<EnemyBase>();
+            if (enemy != null)
+                enemy.Stun(quackStunDuration);
+
+            // Knockback all rigidbodies in range
+            Rigidbody2D hitRb = hit.GetComponent<Rigidbody2D>();
+            if (hitRb != null)
+            {
+                Vector2 dir = ((Vector2)hit.transform.position - (Vector2)transform.position).normalized;
+                hitRb.AddForce(dir * 500f);
+            }
+
+            // Break destructible props in range
+            DestructibleProp prop = hit.GetComponent<DestructibleProp>();
+            prop?.TakeDamage(50f);
+        }
+
+        CameraFollow.ShakeCamera(0.3f);
+        JuiceManager.Instance?.TriggerSlowMo();
+    }
+
+    private void CreateQuackShockwave()
+    {
+        var ring = new GameObject("QuackRing");
+        ring.transform.position = transform.position;
+
+        var sr = ring.AddComponent<SpriteRenderer>();
+        sr.color = new Color(1f, 1f, 0.3f, 0.7f);
+        sr.sortingOrder = 10;
+
+        var fx = ring.AddComponent<ExplosionEffect>();
+        fx.Initialize(quackStunRadius * 0.8f, new Color(1f, 1f, 0.3f, 0.7f));
+    }
+
     private void Flip()
     {
         facingRight = !facingRight;
@@ -154,9 +408,6 @@ public class PlayerController : MonoBehaviour
         }
     }
 
-    /// <summary>
-    /// Returns the aim direction based on mouse position or facing direction.
-    /// </summary>
     private Vector2 GetAimDirection()
     {
         Camera mainCam = Camera.main;
@@ -172,28 +423,19 @@ public class PlayerController : MonoBehaviour
         return (mouseWorldPos - transform.position).normalized;
     }
 
-    /// <summary>
-    /// QUACK! Stuns all enemies within radius. THE DUCK REVOLUTION HAS BEGUN!
-    /// </summary>
-    private void Quack()
+    /// <summary>Apply a temporary speed multiplier (from powerup).</summary>
+    public void ApplySpeedBoost(float multiplier, float duration)
     {
-        Debug.Log("QUAAACK! *stun*");
-
-        if (UIManager.Instance != null)
-            UIManager.Instance.ShowTextPopup("QUAAACK!", transform.position + Vector3.up);
-
-        Collider2D[] hits = Physics2D.OverlapCircleAll(transform.position, quackStunRadius);
-        foreach (Collider2D hit in hits)
-        {
-            EnemyBase enemy = hit.GetComponent<EnemyBase>();
-            if (enemy != null)
-                enemy.Stun(quackStunDuration);
-        }
+        StartCoroutine(SpeedBoostCoroutine(multiplier, duration));
     }
 
-    /// <summary>
-    /// Draw ground check gizmo in editor for debugging.
-    /// </summary>
+    private IEnumerator SpeedBoostCoroutine(float multiplier, float duration)
+    {
+        speedMultiplier = multiplier;
+        yield return new WaitForSeconds(duration);
+        speedMultiplier = 1f;
+    }
+
     private void OnDrawGizmosSelected()
     {
         if (groundCheck != null)
@@ -201,9 +443,9 @@ public class PlayerController : MonoBehaviour
             Gizmos.color = Color.red;
             Gizmos.DrawWireSphere(groundCheck.position, groundCheckRadius);
         }
-
         Gizmos.color = Color.yellow;
         Gizmos.DrawWireSphere(transform.position, quackStunRadius);
+        Gizmos.color = Color.cyan;
+        Gizmos.DrawWireSphere(transform.position, groundPoundRadius);
     }
 }
-
