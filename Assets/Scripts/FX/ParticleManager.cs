@@ -57,7 +57,7 @@ public class ParticleManager : MonoBehaviour
         var main = ps.main;
         main.startColor = color;
         var emission = ps.emission;
-        emission.SetBurst(0, new ParticleSystem.Burst(0f, count));
+        emission.ClearBursts(); emission.AddBurst( new ParticleSystem.Burst(0f, count));
         ps.Play();
         Instance.ReturnAfterPlay(ps, Instance.featherPool);
     }
@@ -132,7 +132,7 @@ public class ParticleManager : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.SetBurst(0, new ParticleSystem.Burst(0f, 8, 12));
+        emission.ClearBursts(); emission.AddBurst( new ParticleSystem.Burst(0f, 8, 12));
         emission.rateOverTime = 0f;
 
         var shape = ps.shape;
@@ -167,7 +167,7 @@ public class ParticleManager : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.SetBurst(0, new ParticleSystem.Burst(0f, 8, 16));
+        emission.ClearBursts(); emission.AddBurst( new ParticleSystem.Burst(0f, 8, 16));
         emission.rateOverTime = 0f;
 
         var shape = ps.shape;
@@ -204,7 +204,7 @@ public class ParticleManager : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.SetBurst(0, new ParticleSystem.Burst(0f, 4, 7));
+        emission.ClearBursts(); emission.AddBurst( new ParticleSystem.Burst(0f, 4, 7));
         emission.rateOverTime = 0f;
 
         var shape = ps.shape;
@@ -242,7 +242,7 @@ public class ParticleManager : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.SetBurst(0, new ParticleSystem.Burst(0f, 1));
+        emission.ClearBursts(); emission.AddBurst( new ParticleSystem.Burst(0f, 1));
         emission.rateOverTime = 0f;
 
         var shape = ps.shape;
@@ -278,7 +278,7 @@ public class ParticleManager : MonoBehaviour
         main.simulationSpace = ParticleSystemSimulationSpace.World;
 
         var emission = ps.emission;
-        emission.SetBurst(0, new ParticleSystem.Burst(0f, 30, 50));
+        emission.ClearBursts(); emission.AddBurst( new ParticleSystem.Burst(0f, 30, 50));
         emission.rateOverTime = 0f;
 
         var shape = ps.shape;
