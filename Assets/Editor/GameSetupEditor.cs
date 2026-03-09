@@ -187,7 +187,11 @@ public class GameSetupEditor : EditorWindow
             importer.spritePixelsPerUnit = 32;
             importer.filterMode = FilterMode.Point;
             importer.textureCompression = TextureImporterCompression.Uncompressed;
-            importer.spriteMeshType = SpriteMeshType.FullRect; // Required for SpriteDrawMode.Tiled
+            // spriteMeshType must be set via TextureImporterSettings in Unity 6
+            TextureImporterSettings settings = new TextureImporterSettings();
+            importer.ReadTextureSettings(settings);
+            settings.spriteMeshType = SpriteMeshType.FullRect; // Required for SpriteDrawMode.Tiled
+            importer.SetTextureSettings(settings);
             importer.SaveAndReimport();
         }
     }
