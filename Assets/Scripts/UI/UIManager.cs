@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
+using TMPro;
 
 /// <summary>
 /// Manages all UI elements: score, health, wave info, text popups.
@@ -10,19 +11,19 @@ public class UIManager : MonoBehaviour
     public static UIManager Instance { get; private set; }
 
     [Header("UI References")]
-    [SerializeField] private Text scoreText;
-    [SerializeField] private Text waveText;
-    [SerializeField] private Text healthText;
+    [SerializeField] private TextMeshProUGUI scoreText;
+    [SerializeField] private TextMeshProUGUI waveText;
+    [SerializeField] private TextMeshProUGUI healthText;
     [SerializeField] private Image healthBar;
     [SerializeField] private GameObject gameOverPanel;
-    [SerializeField] private Text gameOverScoreText;
+    [SerializeField] private TextMeshProUGUI gameOverScoreText;
 
     [Header("Text Popup")]
     [SerializeField] private GameObject textPopupPrefab;
     [SerializeField] private Canvas worldCanvas; // Canvas set to World Space for popups
 
     [Header("Wave Announcement")]
-    [SerializeField] private Text announcementText;
+    [SerializeField] private TextMeshProUGUI announcementText;
     [SerializeField] private float announcementDuration = 3f;
 
     private float announcementTimer;

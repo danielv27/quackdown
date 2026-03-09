@@ -1,6 +1,7 @@
 using UnityEngine;
 using UnityEditor;
 using System.IO;
+using TMPro;
 
 /// <summary>
 /// Editor utility that generates placeholder sprites and sets up the entire game scene.
@@ -811,13 +812,13 @@ public class GameSetupEditor : EditorWindow
         // Create UI Manager and assign references
         UIManager uiManager = canvasObj.AddComponent<UIManager>();
         SerializedObject uiSO = new SerializedObject(uiManager);
-        uiSO.FindProperty("scoreText").objectReferenceValue = scoreObj.GetComponent<UnityEngine.UI.Text>();
-        uiSO.FindProperty("waveText").objectReferenceValue = waveObj.GetComponent<UnityEngine.UI.Text>();
-        uiSO.FindProperty("healthText").objectReferenceValue = healthObj.GetComponent<UnityEngine.UI.Text>();
+        uiSO.FindProperty("scoreText").objectReferenceValue = scoreObj.GetComponent<TextMeshProUGUI>();
+        uiSO.FindProperty("waveText").objectReferenceValue = waveObj.GetComponent<TextMeshProUGUI>();
+        uiSO.FindProperty("healthText").objectReferenceValue = healthObj.GetComponent<TextMeshProUGUI>();
         uiSO.FindProperty("healthBar").objectReferenceValue = fillImg;
-        uiSO.FindProperty("announcementText").objectReferenceValue = announcementObj.GetComponent<UnityEngine.UI.Text>();
+        uiSO.FindProperty("announcementText").objectReferenceValue = announcementObj.GetComponent<TextMeshProUGUI>();
         uiSO.FindProperty("gameOverPanel").objectReferenceValue = gameOverPanel;
-        uiSO.FindProperty("gameOverScoreText").objectReferenceValue = gameOverText.GetComponent<UnityEngine.UI.Text>();
+        uiSO.FindProperty("gameOverScoreText").objectReferenceValue = gameOverText.GetComponent<TextMeshProUGUI>();
         uiSO.ApplyModifiedProperties();
 
         // World Space Canvas for text popups
@@ -834,6 +835,23 @@ public class GameSetupEditor : EditorWindow
         uiSO = new SerializedObject(uiManager);
         uiSO.FindProperty("worldCanvas").objectReferenceValue = worldCanvas;
         uiSO.ApplyModifiedProperties();
+    }
+
+    private static TextAlignmentOptions ConvertAnchorToTMP(TextAnchor anchor)
+    {
+        switch (anchor)
+        {
+            case TextAnchor.UpperLeft: return TextAlignmentOptions.TopLeft;
+            case TextAnchor.UpperCenter: return TextAlignmentOptions.Top;
+            case TextAnchor.UpperRight: return TextAlignmentOptions.TopRight;
+            case TextAnchor.MiddleLeft: return TextAlignmentOptions.Left;
+            case TextAnchor.MiddleCenter: return TextAlignmentOptions.Center;
+            case TextAnchor.MiddleRight: return TextAlignmentOptions.Right;
+            case TextAnchor.LowerLeft: return TextAlignmentOptions.BottomLeft;
+            case TextAnchor.LowerCenter: return TextAlignmentOptions.Bottom;
+            case TextAnchor.LowerRight: return TextAlignmentOptions.BottomRight;
+            default: return TextAlignmentOptions.Center;
+        }
     }
 
     private static GameObject CreateUIText(string name, Transform parent, Vector2 position, Vector2 size, string text, TextAnchor anchor, int fontSize, Color color)
@@ -869,24 +887,16 @@ public class GameSetupEditor : EditorWindow
         rect.anchoredPosition = position;
         rect.sizeDelta = size;
 
-        UnityEngine.UI.Text uiText = obj.AddComponent<UnityEngine.UI.Text>();
+        TextMeshProUGUI uiText = obj.AddComponent<TextMeshProUGUI>();
         uiText.text = text;
         uiText.fontSize = fontSize;
         uiText.color = color;
-        uiText.alignment = anchor;
-
-        // Try to load built-in font (name varies by Unity version)
-        Font font = Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
-        if (font == null)
-            font = Resources.GetBuiltinResource<Font>("Arial.ttf");
-        uiText.font = font;
-
-        uiText.horizontalOverflow = HorizontalWrapMode.Overflow;
+        uiText.alignment = ConvertAnchorToTMP(anchor);
+        uiText.enableWordWrapping = false;
 
         // Add outline for readability
-        UnityEngine.UI.Outline outline = obj.AddComponent<UnityEngine.UI.Outline>();
-        outline.effectColor = Color.black;
-        outline.effectDistance = new Vector2(1, -1);
+        uiText.outlineWidth = 0.2f;
+        uiText.outlineColor = Color.black;
 
         return obj;
     }

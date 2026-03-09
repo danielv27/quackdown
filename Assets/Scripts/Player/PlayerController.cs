@@ -62,7 +62,7 @@ public class PlayerController : MonoBehaviour
         // Jump
         if (Input.GetButtonDown("Jump") && isGrounded)
         {
-            rb.velocity = new Vector2(rb.velocity.x, jumpForce);
+            rb.linearVelocity = new Vector2(rb.linearVelocity.x, jumpForce);
         }
 
         // Shoot (left mouse button or left ctrl)
@@ -91,7 +91,7 @@ public class PlayerController : MonoBehaviour
     private void FixedUpdate()
     {
         // Apply horizontal movement
-        rb.velocity = new Vector2(horizontalInput * moveSpeed, rb.velocity.y);
+        rb.linearVelocity = new Vector2(horizontalInput * moveSpeed, rb.linearVelocity.y);
     }
 
     /// <summary>

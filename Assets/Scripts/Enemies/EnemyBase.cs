@@ -123,7 +123,7 @@ public class EnemyBase : MonoBehaviour
     {
         float speed = enemyData != null ? enemyData.patrolSpeed : 1.5f;
         float dir = facingRight ? 1f : -1f;
-        rb.velocity = new Vector2(dir * speed, rb.velocity.y);
+        rb.linearVelocity = new Vector2(dir * speed, rb.linearVelocity.y);
 
         // Flip at edges (if ground check exists)
         if (groundCheck != null && isGrounded)
@@ -152,7 +152,7 @@ public class EnemyBase : MonoBehaviour
 
         // Move toward player
         float moveDir = Mathf.Sign(dirToPlayer);
-        rb.velocity = new Vector2(moveDir * speed, rb.velocity.y);
+        rb.linearVelocity = new Vector2(moveDir * speed, rb.linearVelocity.y);
     }
 
     /// <summary>
@@ -161,7 +161,7 @@ public class EnemyBase : MonoBehaviour
     protected virtual void Attack()
     {
         // Stop moving when attacking
-        rb.velocity = new Vector2(0f, rb.velocity.y);
+        rb.linearVelocity = new Vector2(0f, rb.linearVelocity.y);
 
         // Face the player
         if (playerTransform != null)
@@ -215,7 +215,7 @@ public class EnemyBase : MonoBehaviour
         isStunned = true;
         stunTimer = duration;
         currentState = EnemyState.Stunned;
-        rb.velocity = Vector2.zero;
+        rb.linearVelocity = Vector2.zero;
     }
 
     /// <summary>

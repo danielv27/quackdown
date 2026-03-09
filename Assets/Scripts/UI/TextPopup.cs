@@ -1,4 +1,5 @@
 using UnityEngine;
+using TMPro;
 
 /// <summary>
 /// Floating text popup that rises and fades out.
@@ -10,10 +11,10 @@ public class TextPopup : MonoBehaviour
     [SerializeField] private float riseSpeed = 1.5f;
     [SerializeField] private float lifetime = 1.5f;
     [SerializeField] private Color textColor = Color.yellow;
-    [SerializeField] private float fontSize = 0.3f;
+    [SerializeField] private float fontSize = 5f;
 
     private float timer;
-    private TextMesh textMesh;
+    private TextMeshPro tmpText;
 
     /// <summary>
     /// Initialize the popup with text content.
@@ -22,22 +23,14 @@ public class TextPopup : MonoBehaviour
     {
         timer = lifetime;
 
-        // Create TextMesh for world-space text
-        textMesh = gameObject.AddComponent<TextMesh>();
-        textMesh.text = text;
-        textMesh.characterSize = fontSize;
-        textMesh.anchor = TextAnchor.MiddleCenter;
-        textMesh.alignment = TextAlignment.Center;
-        textMesh.color = textColor;
-        textMesh.fontStyle = FontStyle.Bold;
-
-        // Add MeshRenderer settings
-        MeshRenderer mr = GetComponent<MeshRenderer>();
-        if (mr != null)
-        {
-            mr.sortingLayerName = "UI";
-            mr.sortingOrder = 100;
-        }
+        // Create TextMeshPro for world-space text
+        tmpText = gameObject.AddComponent<TextMeshPro>();
+        tmpText.text = text;
+        tmpText.fontSize = fontSize;
+        tmpText.alignment = TextAlignmentOptions.Center;
+        tmpText.color = textColor;
+        tmpText.fontStyle = FontStyles.Bold;
+        tmpText.sortingOrder = 100;
 
         // Random slight horizontal offset for visual variety
         transform.position += new Vector3(Random.Range(-0.5f, 0.5f), 0f, 0f);
@@ -51,11 +44,11 @@ public class TextPopup : MonoBehaviour
         transform.position += Vector3.up * riseSpeed * Time.deltaTime;
 
         // Fade out
-        if (textMesh != null)
+        if (tmpText != null)
         {
-            Color c = textMesh.color;
+            Color c = tmpText.color;
             c.a = Mathf.Lerp(0f, 1f, timer / lifetime);
-            textMesh.color = c;
+            tmpText.color = c;
         }
 
         // Destroy when done
